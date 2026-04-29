@@ -6,18 +6,20 @@ body,
 
 body {
   margin: 0;
-  font-family:
-    Inter,
-    ui-sans-serif,
-    system-ui,
-    -apple-system,
-    BlinkMacSystemFont,
-    'Segoe UI',
-    sans-serif;
+  font-family: "Aptos", "Avenir Next", "Segoe UI", sans-serif;
+  color: #1a1c1f;
+  background: #f2f2f7;
 }
 
 *,
 *::before,
 *::after {
   box-sizing: border-box;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
 }

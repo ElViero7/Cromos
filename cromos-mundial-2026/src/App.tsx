@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
-import type { FormEvent } from 'react';
+import type { FormEvent, ReactNode } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import {
+  ActionIcon,
   AppShell,
   Badge,
   Box,
@@ -13,21 +14,19 @@ import {
   Modal,
   NumberInput,
   PasswordInput,
-  SegmentedControl,
+  RingProgress,
   Select,
   SimpleGrid,
   Stack,
-  Tabs,
   Text,
   TextInput,
-  ThemeIcon,
   Title,
 } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Handshake,
-  LayoutGrid,
+  Home,
   LogOut,
   Search,
   ShieldCheck,
@@ -56,7 +55,7 @@ type Country = {
 type StickerRecord = {
   id: string;
   nombre: string;
-  numero: number;
+  numero: string;
   posicion: string;
   pais: Country | null;
 };
@@ -86,7 +85,7 @@ type RepeatedSticker = {
   cantidad: number;
   cromo_id: string;
   cromo_nombre: string;
-  numero: number;
+  numero: string;
   pais: string;
   pais_iso: string;
   posicion: string;
@@ -150,11 +149,70 @@ const countryLabelsEs: Record<string, string> = {
   UZB: 'Uzbekistan',
 };
 
-const appTabs: Array<{ icon: typeof LayoutGrid; label: string; value: AppTab }> = [
-  { icon: LayoutGrid, label: 'Dashboard', value: 'dashboard' },
-  { icon: Users, label: 'Social Hub', value: 'social' },
+const appTabs: Array<{ icon: typeof Home; label: string; value: AppTab }> = [
+  { icon: Home, label: 'Coleccion', value: 'dashboard' },
+  { icon: Users, label: 'Social', value: 'social' },
   { icon: ShoppingBag, label: 'Mercado', value: 'market' },
 ];
+
+const dashboardSections: Array<{ label: string; value: DashboardSection }> = [
+  { label: 'Selecciones', value: 'teams' },
+  { label: 'FWC', value: 'fwc' },
+  { label: 'Coca-Cola', value: 'coca' },
+  { label: 'Todo', value: 'all' },
+];
+
+const countryDisplayOrder = [
+  'FWC',
+  'COK',
+  'ALG',
+  'ARG',
+  'AUS',
+  'AUT',
+  'BEL',
+  'BIH',
+  'BRA',
+  'CPV',
+  'CAN',
+  'COL',
+  'COD',
+  'CRO',
+  'CUW',
+  'CZE',
+  'ECU',
+  'EGY',
+  'ENG',
+  'FRA',
+  'GER',
+  'GHA',
+  'HTI',
+  'IRQ',
+  'IRN',
+  'JPN',
+  'JOR',
+  'KOR',
+  'MEX',
+  'MAR',
+  'NED',
+  'NZL',
+  'NOR',
+  'PAN',
+  'PAR',
+  'POR',
+  'QAT',
+  'SAU',
+  'SCO',
+  'SEN',
+  'RSA',
+  'ESP',
+  'SWE',
+  'SUI',
+  'TUN',
+  'TUR',
+  'URU',
+  'USA',
+  'UZB',
+] as const;
 
 function App() {
   const [session, setSession] = useState<Session | null>(null);
@@ -235,7 +293,7 @@ function App() {
   return (
     <AppShell padding="lg" className="app-shell">
       <AppShell.Main>
-        <Container size="xl" className="app-page">
+        <Container size="sm" className="app-page">
           {session ? (
             <AuthenticatedApp
               session={session}
@@ -268,7 +326,7 @@ function App() {
 }
 
 function AuthScreen() {
-  const [tab, setTab] = useState<string | null>('login');
+  const [mode, setMode] = useState<'login' | 'register'>('login');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -301,7 +359,7 @@ function AuthScreen() {
 
     const email = deriveInternalEmail(normalized);
 
-    if (tab === 'register') {
+    if (mode === 'register') {
       const { error } = await supabase.auth.signUp({
         email,
         password,
@@ -360,23 +418,33 @@ function AuthScreen() {
         <form onSubmit={submit}>
           <Stack gap="lg">
             <div>
-              <Badge variant="light" color="green" radius="sm" mb="md">
+              <Badge variant="light" color="green" radius="xl" mb="md">
                 Cromos Mundial 2026
               </Badge>
               <Title order={1} className="auth-title">
-                Entra o crea tu cuenta
+                Acceso movil para tu coleccion
               </Title>
               <Text className="auth-text">
-                Acceso con username y contrasena.
+                Entra con username y contrasena para gestionar los cromos, amigos e intercambios.
               </Text>
             </div>
 
-            <Tabs value={tab} onChange={setTab}>
-              <Tabs.List grow>
-                <Tabs.Tab value="login">Login</Tabs.Tab>
-                <Tabs.Tab value="register">Registro</Tabs.Tab>
-              </Tabs.List>
-            </Tabs>
+            <div className="auth-mode-switch">
+              <button
+                type="button"
+                className={mode === 'login' ? 'auth-mode-button active' : 'auth-mode-button'}
+                onClick={() => setMode('login')}
+              >
+                Login
+              </button>
+              <button
+                type="button"
+                className={mode === 'register' ? 'auth-mode-button active' : 'auth-mode-button'}
+                onClick={() => setMode('register')}
+              >
+                Registro
+              </button>
+            </div>
 
             <TextInput
               label="Username"
@@ -392,17 +460,17 @@ function AuthScreen() {
               placeholder="Tu contrasena"
               value={password}
               onChange={(event) => setPassword(event.currentTarget.value)}
-              autoComplete={tab === 'register' ? 'new-password' : 'current-password'}
+              autoComplete={mode === 'register' ? 'new-password' : 'current-password'}
               required
             />
 
             <Text size="sm" c="dimmed">
-              Username permitido: 3 a 20 caracteres, con letras minusculas,
-              numeros, punto, guion o guion bajo.
+              Username permitido: 3 a 20 caracteres, con letras minusculas, numeros, punto,
+              guion o guion bajo.
             </Text>
 
-            <Button type="submit" color="dark" loading={submitting}>
-              {tab === 'register' ? 'Crear cuenta' : 'Entrar'}
+            <Button type="submit" color="dark" loading={submitting} radius="xl" size="md">
+              {mode === 'register' ? 'Crear cuenta' : 'Entrar'}
             </Button>
           </Stack>
         </form>
@@ -742,6 +810,15 @@ function AuthenticatedApp({ onLogout, session }: AuthenticatedAppProps) {
     const matchesPosition = !positionFilter || item.posicion === positionFilter;
     return matchesSection && matchesCountry && matchesPosition;
   });
+  const sortedFilteredStickers = [...filteredStickers].sort((left, right) => {
+    const countryComparison = getCountryOrderValue(left.pais?.iso) - getCountryOrderValue(right.pais?.iso);
+
+    if (countryComparison !== 0) {
+      return countryComparison;
+    }
+
+    return getStickerNumberValue(left.numero) - getStickerNumberValue(right.numero);
+  });
   const positionOptions = Array.from(new Set(stickers.map((item) => item.posicion)))
     .sort()
     .map((posicion) => ({
@@ -752,6 +829,19 @@ function AuthenticatedApp({ onLogout, session }: AuthenticatedAppProps) {
     (item) => (ownCollectionMap.get(item.cromo_id) ?? 0) === 0,
   );
 
+  const collectedDistinct = stickers.reduce(
+    (acc, sticker) => acc + (ownCollectionMap.get(sticker.id) ?? 0 > 0 ? 1 : 0),
+    0,
+  );
+  const totalStickers = stickers.length;
+  const missingDistinct = Math.max(totalStickers - collectedDistinct, 0);
+  const completion = totalStickers === 0 ? 0 : Math.round((collectedDistinct / totalStickers) * 100);
+  const totalUnits = collection.reduce((acc, item) => acc + item.cantidad, 0);
+  const duplicateUnits = collection.reduce(
+    (acc, item) => acc + Math.max(item.cantidad - 1, 0),
+    0,
+  );
+
   const openStickerModal = (sticker: StickerRecord) => {
     setSelectedSticker(sticker);
     setDraftQuantity(ownCollectionMap.get(sticker.id) ?? 0);
@@ -759,112 +849,122 @@ function AuthenticatedApp({ onLogout, session }: AuthenticatedAppProps) {
 
   return (
     <>
-      <Stack gap="xl">
-        <section className="hero-panel">
-          <Group justify="space-between" align="flex-start" gap="lg">
-            <div className="hero-copy">
-              <Badge variant="light" color="green" radius="sm" mb="md">
-                Sesion activa
-              </Badge>
-              <Title order={1} className="hero-title">
-                {username}
-              </Title>
-            </div>
+      <div className="mobile-app-shell">
+        <header className="mobile-topbar">
+          <div>
+            <Text className="eyebrow-text">Mi album</Text>
+            <Title order={1} className="screen-title">
+              {activeTab === 'dashboard'
+                ? 'Collection'
+                : activeTab === 'social'
+                  ? 'Social'
+                  : 'Market'}
+            </Title>
+            <Text className="screen-subtitle">@{username}</Text>
+          </div>
 
-            <Button
-              variant="subtle"
-              color="dark"
-              leftSection={<LogOut size={16} />}
-              onClick={() => void onLogout()}
-            >
-              Cerrar sesion
-            </Button>
-          </Group>
-        </section>
+          <ActionIcon
+            variant="default"
+            radius="xl"
+            size="xl"
+            className="topbar-action"
+            onClick={() => void onLogout()}
+            aria-label="Cerrar sesion"
+          >
+            <LogOut size={18} />
+          </ActionIcon>
+        </header>
 
-        <Tabs value={activeTab} onChange={(value) => setActiveTab((value as AppTab) ?? 'dashboard')}>
-          <Tabs.List grow className="nav-tabs">
-            {appTabs.map(({ icon: Icon, label, value }) => (
-              <Tabs.Tab
-                key={value}
-                value={value}
-                leftSection={<Icon size={16} />}
-              >
-                {label}
-              </Tabs.Tab>
-            ))}
-          </Tabs.List>
-
-          <Tabs.Panel value="dashboard" pt="xl">
+        <main className="mobile-screen">
+          {activeTab === 'dashboard' ? (
             <Stack gap="lg">
-              <SegmentedControl
-                fullWidth
-                radius="xl"
-                value={sectionFilter}
-                onChange={(value) => {
-                  setSectionFilter(value as DashboardSection);
-                  if (value !== 'teams') {
-                    setCountryFilter(null);
-                  }
-                }}
-                data={[
-                  { label: 'Selecciones', value: 'teams' },
-                  { label: 'FWC', value: 'fwc' },
-                  { label: 'Coca-Cola', value: 'coca' },
-                  { label: 'Todo', value: 'all' },
-                ]}
-              />
+              <section className="hero-panel collection-hero">
+                <div className="collection-progress">
+                  <RingProgress
+                    size={212}
+                    thickness={24}
+                    roundCaps
+                    sections={[{ value: completion, color: '#202124' }]}
+                    rootColor="#d9dadd"
+                    label={
+                      <div className="progress-center">
+                        <span className="progress-value">{completion}%</span>
+                        <span className="progress-label">COLLECTION</span>
+                      </div>
+                    }
+                  />
+                </div>
 
-              <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
-                <Select
-                  label="Pais"
-                  placeholder="Todos"
-                  data={teamCountries.map((country) => ({
-                    label: getCountryLabel(country),
-                    value: country.id,
-                  }))}
-                  value={countryFilter}
-                  onChange={setCountryFilter}
-                  disabled={sectionFilter !== 'teams'}
-                  searchable
-                  nothingFoundMessage="No hay paises"
-                  clearable
-                />
+                <div className="collection-meta-grid">
+                  <MiniMetric label="Collected" value={String(collectedDistinct)} tone="dark" />
+                  <MiniMetric label="Missing" value={String(missingDistinct)} tone="muted" />
+                  <MiniMetric label="Duplicados" value={String(duplicateUnits)} tone="accent" />
+                </div>
+              </section>
 
-                <Select
-                  label="Posicion"
-                  placeholder="Todas"
-                  data={positionOptions}
-                  value={positionFilter}
-                  onChange={setPositionFilter}
-                  clearable
-                />
-              </SimpleGrid>
+              <section className="chip-scroll" aria-label="Filtrar seccion">
+                {dashboardSections.map((section) => (
+                  <button
+                    key={section.value}
+                    type="button"
+                    className={
+                      sectionFilter === section.value ? 'filter-chip active' : 'filter-chip'
+                    }
+                    onClick={() => {
+                      setSectionFilter(section.value);
+                      if (section.value !== 'teams') {
+                        setCountryFilter(null);
+                      }
+                    }}
+                  >
+                    {section.label}
+                  </button>
+                ))}
+              </section>
 
-              <SimpleGrid cols={{ base: 2, lg: 4 }} spacing="md">
-                <StatCard
-                  icon={Sticker}
-                  label="Cromos visibles"
-                  value={String(filteredStickers.length)}
-                />
-                <StatCard
-                  icon={ShieldCheck}
-                  label="Coleccion total"
-                  value={String(
-                    collection.reduce((acc, item) => acc + item.cantidad, 0),
-                  )}
-                />
-                <StatCard
-                  icon={Users}
-                  label="Amigos"
-                  value={String(acceptedFriends.length)}
-                />
-                <StatCard
-                  icon={ShoppingBag}
-                  label="Oportunidades"
-                  value={String(marketMatches.length)}
-                />
-              </SimpleGrid>
+              <Card className="panel-card filter-panel" padding="lg" radius="xl">
+                <Stack gap="md">
+                  <Group justify="space-between">
+                      <Text fw={700}>Vista de cromos</Text>
+                      <Badge variant="light" color="dark" radius="xl">
+                      {sortedFilteredStickers.length}
+                      </Badge>
+                  </Group>
+
+                  <SimpleGrid cols={{ base: 1, xs: 2 }} spacing="sm">
+                    <Select
+                      label="Pais"
+                      placeholder="Todos"
+                      data={teamCountries.map((country) => ({
+                        label: getCountryLabel(country),
+                        value: country.id,
+                      }))}
+                      value={countryFilter}
+                      onChange={setCountryFilter}
+                      disabled={sectionFilter !== 'teams'}
+                      searchable
+                      nothingFoundMessage="No hay paises"
+                      clearable
+                    />
+
+                    <Select
+                      label="Posicion"
+                      placeholder="Todas"
+                      data={positionOptions}
+                      value={positionFilter}
+                      onChange={setPositionFilter}
+                      clearable
+                    />
+                  </SimpleGrid>
+
+                  <div className="summary-strip">
+                    <SummaryPill icon={Sticker} label="Cromos" value={String(totalStickers)} />
+                    <SummaryPill icon={ShieldCheck} label="Total" value={String(totalUnits)} />
+                    <SummaryPill icon={Users} label="Amigos" value={String(acceptedFriends.length)} />
+                    <SummaryPill icon={ShoppingBag} label="Mercado" value={String(marketMatches.length)} />
+                  </div>
+                </Stack>
+              </Card>
 
               {stickersQuery.isLoading || collectionQuery.isLoading ? (
                 <Card className="empty-card">
@@ -876,207 +976,225 @@ function AuthenticatedApp({ onLogout, session }: AuthenticatedAppProps) {
                   text="Prueba a limpiar pais o posicion."
                 />
               ) : (
-                <SimpleGrid cols={{ base: 2, sm: 2, lg: 4 }} spacing="md">
-                  {filteredStickers.map((sticker) => {
+                <div className="sticker-grid compact-sticker-grid">
+                  {sortedFilteredStickers.map((sticker) => {
                     const quantity = ownCollectionMap.get(sticker.id) ?? 0;
 
                     return (
-                      <Card
+                      <button
                         key={sticker.id}
-                        className="sticker-card"
-                        padding="lg"
-                        radius="lg"
+                        type="button"
+                        className={
+                          quantity > 1
+                            ? 'sticker-card mobile-sticker-card is-duplicate'
+                            : quantity > 0
+                              ? 'sticker-card mobile-sticker-card is-owned'
+                              : 'sticker-card mobile-sticker-card'
+                        }
                         onClick={() => openStickerModal(sticker)}
                       >
-                        <Stack gap="sm">
-                          <Group justify="space-between" align="flex-start">
-                            <Badge color="dark" variant="filled">
-                              #{sticker.numero}
-                            </Badge>
-                            <Badge
-                              color={quantity > 1 ? 'yellow' : quantity > 0 ? 'green' : 'gray'}
-                              variant="light"
-                            >
-                              x{quantity}
-                            </Badge>
-                          </Group>
+                        <div className="sticker-card-header">
+                          <span className="sticker-number">#{formatStickerNumber(sticker.numero)}</span>
+                          <span
+                            className={
+                              quantity > 1
+                                ? 'sticker-qty sticker-qty-dup'
+                                : quantity > 0
+                                  ? 'sticker-qty sticker-qty-own'
+                                  : 'sticker-qty'
+                            }
+                          >
+                            x{quantity}
+                          </span>
+                        </div>
 
-                          <div>
-                            <Text fw={700} c="dark.8">
-                              {sticker.nombre}
-                            </Text>
-                            <Text size="sm" c="dimmed">
-                              {getCountryLabel(sticker.pais) ?? 'Sin pais'} ·{' '}
-                              {labelForSticker(sticker)}
-                            </Text>
-                          </div>
-                        </Stack>
-                      </Card>
+                        <div className="sticker-silhouette" aria-hidden="true" />
+
+                        <div className="sticker-card-body">
+                          <Text fw={700} className="sticker-name">
+                            {sticker.nombre}
+                          </Text>
+                          <Text size="sm" c="dimmed" className="sticker-meta">
+                            {getCountryLabel(sticker.pais) ?? 'Sin pais'} · {labelForSticker(sticker)}
+                          </Text>
+                        </div>
+                      </button>
                     );
                   })}
-                </SimpleGrid>
+                </div>
               )}
             </Stack>
-          </Tabs.Panel>
+          ) : null}
 
-          <Tabs.Panel value="social" pt="xl">
+          {activeTab === 'social' ? (
             <Stack gap="lg">
-              <Group grow align="end" className="search-toolbar">
-                <TextInput
-                  label="Buscar usuario"
-                  placeholder="username"
-                  value={searchValue}
-                  onChange={(event) => setSearchValue(event.currentTarget.value)}
-                  leftSection={<Search size={16} />}
-                />
-                <Button color="dark" onClick={() => setSearchTerm(normalizeUsername(searchValue))}>
-                  Buscar
-                </Button>
-              </Group>
+              <Card className="panel-card section-card" padding="lg" radius="xl">
+                <Stack gap="md">
+                  <div>
+                    <Text fw={800} size="lg">
+                      Buscar usuarios
+                    </Text>
+                    <Text size="sm" c="dimmed">
+                      Encuentra amigos para comparar y conseguir cromos repetidos.
+                    </Text>
+                  </div>
 
-              {searchTerm.length > 0 && searchTerm.length < 3 ? (
-                <EmptyState
-                  title="Busqueda demasiado corta"
-                  text="Usa al menos 3 caracteres para buscar usernames."
-                />
-              ) : null}
+                  <div className="search-bar-panel">
+                    <TextInput
+                      placeholder="username"
+                      value={searchValue}
+                      onChange={(event) => setSearchValue(event.currentTarget.value)}
+                      leftSection={<Search size={16} />}
+                    />
+                    <Button color="dark" radius="xl" onClick={() => setSearchTerm(normalizeUsername(searchValue))}>
+                      Buscar
+                    </Button>
+                  </div>
 
-              {userSearchQuery.isLoading ? (
-                <Card className="empty-card">
-                  <Loader color="green" />
-                </Card>
-              ) : null}
+                  {searchTerm.length > 0 && searchTerm.length < 3 ? (
+                    <EmptyState
+                      title="Busqueda demasiado corta"
+                      text="Usa al menos 3 caracteres para buscar usernames."
+                    />
+                  ) : null}
 
-              {searchTerm.length >= 3 && !userSearchQuery.isLoading ? (
-                <Card className="panel-card" padding="lg" radius="lg">
-                  <Stack gap="md">
-                    <Group justify="space-between">
-                      <Text fw={700}>Resultados</Text>
-                      <Badge variant="light">{userSearchQuery.data?.length ?? 0}</Badge>
-                    </Group>
+                  {userSearchQuery.isLoading ? (
+                    <Card className="empty-card">
+                      <Loader color="green" />
+                    </Card>
+                  ) : null}
 
-                    {(userSearchQuery.data ?? []).length === 0 ? (
-                      <Text c="dimmed" size="sm">
-                        No hay usuarios para esa busqueda.
-                      </Text>
-                    ) : (
-                      (userSearchQuery.data ?? []).map((profile) => (
-                        <Group key={profile.id} justify="space-between" className="row-card">
-                          <div>
-                            <Text fw={600}>{profile.username}</Text>
-                            <Text size="sm" c="dimmed">
-                              Estado: {profile.relation}
-                            </Text>
-                          </div>
+                  {searchTerm.length >= 3 && !userSearchQuery.isLoading ? (
+                    <div className="stacked-list">
+                      {(userSearchQuery.data ?? []).length === 0 ? (
+                        <Text c="dimmed" size="sm">
+                          No hay usuarios para esa busqueda.
+                        </Text>
+                      ) : (
+                        (userSearchQuery.data ?? []).map((profile) => (
+                          <SocialRow
+                            key={profile.id}
+                            title={profile.username}
+                            subtitle={`Estado: ${profile.relation}`}
+                            action={
+                              <Button
+                                size="xs"
+                                variant="light"
+                                color="dark"
+                                radius="xl"
+                                leftSection={<UserPlus size={14} />}
+                                disabled={profile.relation !== 'none'}
+                                loading={sendFriendRequestMutation.isPending}
+                                onClick={() => sendFriendRequestMutation.mutate(profile.id)}
+                              >
+                                {profile.relation === 'none' ? 'Enviar' : 'Bloqueado'}
+                              </Button>
+                            }
+                          />
+                        ))
+                      )}
+                    </div>
+                  ) : null}
+                </Stack>
+              </Card>
 
-                          <Button
-                            size="xs"
-                            variant="light"
-                            leftSection={<UserPlus size={14} />}
-                            disabled={profile.relation !== 'none'}
-                            loading={sendFriendRequestMutation.isPending}
-                            onClick={() => sendFriendRequestMutation.mutate(profile.id)}
-                          >
-                            {profile.relation === 'none' ? 'Enviar' : 'Bloqueado'}
-                          </Button>
-                        </Group>
-                      ))
-                    )}
-                  </Stack>
-                </Card>
-              ) : null}
+              <Card className="panel-card section-card" padding="lg" radius="xl">
+                <Stack gap="md">
+                  <Group justify="space-between">
+                    <Text fw={800} size="lg">
+                      Solicitudes pendientes
+                    </Text>
+                    <Badge variant="light" color="dark" radius="xl">
+                      {incomingRequests.length}
+                    </Badge>
+                  </Group>
 
-              <SimpleGrid cols={{ base: 1, lg: 2 }} spacing="md">
-                <Card className="panel-card" padding="lg" radius="lg">
-                  <Stack gap="md">
-                    <Group justify="space-between">
-                      <Text fw={700}>Solicitudes pendientes</Text>
-                      <Badge variant="light">{incomingRequests.length}</Badge>
-                    </Group>
-
-                    {incomingRequests.length === 0 ? (
-                      <Text size="sm" c="dimmed">
-                        No tienes solicitudes pendientes.
-                      </Text>
-                    ) : (
-                      incomingRequests.map((request) => {
-                        const profile = pendingProfiles.find(
-                          (item) => item.id === request.created_by,
-                        );
+                  {incomingRequests.length === 0 ? (
+                    <Text size="sm" c="dimmed">
+                      No tienes solicitudes pendientes.
+                    </Text>
+                  ) : (
+                    <div className="stacked-list">
+                      {incomingRequests.map((request) => {
+                        const profile = pendingProfiles.find((item) => item.id === request.created_by);
 
                         return (
-                          <Group key={request.id} justify="space-between" className="row-card">
-                            <div>
-                              <Text fw={600}>{profile?.username ?? 'Usuario'}</Text>
-                              <Text size="sm" c="dimmed">
-                                Solicitud recibida
-                              </Text>
-                            </div>
-
-                            <Button
-                              size="xs"
-                              variant="light"
-                              leftSection={<Handshake size={14} />}
-                              loading={acceptFriendRequestMutation.isPending}
-                              onClick={() => acceptFriendRequestMutation.mutate(request.id)}
-                            >
-                              Aceptar
-                            </Button>
-                          </Group>
+                          <SocialRow
+                            key={request.id}
+                            title={profile?.username ?? 'Usuario'}
+                            subtitle="Solicitud recibida"
+                            action={
+                              <Button
+                                size="xs"
+                                variant="light"
+                                color="green"
+                                radius="xl"
+                                leftSection={<Handshake size={14} />}
+                                loading={acceptFriendRequestMutation.isPending}
+                                onClick={() => acceptFriendRequestMutation.mutate(request.id)}
+                              >
+                                Aceptar
+                              </Button>
+                            }
+                          />
                         );
-                      })
-                    )}
-                  </Stack>
-                </Card>
+                      })}
+                    </div>
+                  )}
+                </Stack>
+              </Card>
 
-                <Card className="panel-card" padding="lg" radius="lg">
-                  <Stack gap="md">
-                    <Group justify="space-between">
-                      <Text fw={700}>Amigos</Text>
-                      <Badge variant="light">{acceptedFriends.length}</Badge>
-                    </Group>
+              <Card className="panel-card section-card" padding="lg" radius="xl">
+                <Stack gap="md">
+                  <Group justify="space-between">
+                    <Text fw={800} size="lg">
+                      Amigos
+                    </Text>
+                    <Badge variant="light" color="green" radius="xl">
+                      {acceptedFriends.length}
+                    </Badge>
+                  </Group>
 
-                    {acceptedFriends.length === 0 ? (
-                      <Text size="sm" c="dimmed">
-                        Aun no tienes amistades aceptadas.
-                      </Text>
-                    ) : (
-                      acceptedFriends.map((friend) => (
-                        <Group key={friend.id} justify="space-between" className="row-card">
-                          <div>
-                            <Text fw={600}>{friend.username}</Text>
-                            <Text size="sm" c="dimmed">
-                              Coleccion visible por amistad aceptada
-                            </Text>
-                          </div>
-
-                          <Badge color="green" variant="light">
-                            amigo
-                          </Badge>
-                        </Group>
-                      ))
-                    )}
-                  </Stack>
-                </Card>
-              </SimpleGrid>
+                  {acceptedFriends.length === 0 ? (
+                    <Text size="sm" c="dimmed">
+                      Aun no tienes amistades aceptadas.
+                    </Text>
+                  ) : (
+                    <div className="stacked-list">
+                      {acceptedFriends.map((friend) => (
+                        <SocialRow
+                          key={friend.id}
+                          title={friend.username}
+                          subtitle="Coleccion visible por amistad aceptada"
+                          action={
+                            <Badge color="green" variant="light" radius="xl">
+                              amigo
+                            </Badge>
+                          }
+                        />
+                      ))}
+                    </div>
+                  )}
+                </Stack>
+              </Card>
             </Stack>
-          </Tabs.Panel>
+          ) : null}
 
-          <Tabs.Panel value="market" pt="xl">
+          {activeTab === 'market' ? (
             <Stack gap="lg">
-              <Group justify="space-between">
-                <div>
-                  <Text fw={700} size="lg" c="dark.8">
-                    Cromos que tus amigos repiten y tu no tienes
-                  </Text>
-                  <Text size="sm" c="dimmed">
-                    Fuente: vista `v_repetidos` cruzada con tu coleccion.
-                  </Text>
+              <section className="hero-panel market-hero">
+                <Text className="eyebrow-text">Intercambios</Text>
+                <Title order={2} className="market-title">
+                  Cromos que tus amigos repiten y tu no tienes
+                </Title>
+                <Text className="hero-text">
+                  Vista cruzada entre `v_repetidos` y tu coleccion para detectar oportunidades.
+                </Text>
+                <div className="market-highlight">
+                  <span className="market-count">{marketMatches.length}</span>
+                  <span className="market-caption">resultados disponibles</span>
                 </div>
-                <Badge variant="light" color="green">
-                  {marketMatches.length} resultados
-                </Badge>
-              </Group>
+              </section>
 
               {repeatedQuery.isLoading ? (
                 <Card className="empty-card">
@@ -1088,39 +1206,66 @@ function AuthenticatedApp({ onLogout, session }: AuthenticatedAppProps) {
                   text="Necesitas amigos con repetidos o datos en la coleccion para ver cruces."
                 />
               ) : (
-                <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
+                <div className="market-list">
                   {marketMatches.map((item) => (
-                    <Card key={`${item.user_id}-${item.cromo_id}`} className="panel-card" padding="lg" radius="lg">
+                    <Card
+                      key={`${item.user_id}-${item.cromo_id}`}
+                      className="panel-card market-card"
+                      padding="lg"
+                      radius="xl"
+                    >
                       <Stack gap="sm">
-                        <Group justify="space-between">
-                          <Badge color="dark" variant="filled">
-                            #{item.numero}
-                          </Badge>
-                          <Badge color="yellow" variant="light">
-                            {item.username} x{item.cantidad}
+                        <Group justify="space-between" align="flex-start">
+                          <div>
+                            <Text fw={800} size="lg">
+                              #{formatStickerNumber(item.numero)} {item.cromo_nombre}
+                            </Text>
+                            <Text size="sm" c="dimmed">
+                              {translateCountryName(item.pais, item.pais_iso)} · {capitalize(item.posicion)}
+                            </Text>
+                          </div>
+
+                          <Badge color="dark" variant="filled" radius="xl">
+                            x{item.cantidad}
                           </Badge>
                         </Group>
 
-                        <div>
-                          <Text fw={700}>{item.cromo_nombre}</Text>
-                          <Text size="sm" c="dimmed">
-                            {translateCountryName(item.pais, item.pais_iso)} · {capitalize(item.posicion)}
-                          </Text>
+                        <div className="trade-pill">
+                          <Users size={16} />
+                          <span>{item.username} lo repite</span>
                         </div>
                       </Stack>
                     </Card>
                   ))}
-                </SimpleGrid>
+                </div>
               )}
             </Stack>
-          </Tabs.Panel>
-        </Tabs>
-      </Stack>
+          ) : null}
+        </main>
+
+        <nav className="bottom-nav" aria-label="Navegacion principal">
+          {appTabs.map(({ icon: Icon, label, value }) => (
+            <button
+              key={value}
+              type="button"
+              className={activeTab === value ? 'bottom-nav-item active' : 'bottom-nav-item'}
+              onClick={() => setActiveTab(value)}
+            >
+              <span className="bottom-nav-icon">
+                <Icon size={20} />
+              </span>
+              <span className="bottom-nav-label">{label}</span>
+            </button>
+          ))}
+        </nav>
+      </div>
 
       <Modal
         opened={Boolean(selectedSticker)}
         onClose={() => setSelectedSticker(null)}
-        title={selectedSticker ? `Cromo #${selectedSticker.numero}` : 'Editar cromo'}
+        title={
+          selectedSticker ? `Cromo #${formatStickerNumber(selectedSticker.numero)}` : 'Editar cromo'
+        }
         centered
       >
         {selectedSticker ? (
@@ -1145,6 +1290,7 @@ function AuthenticatedApp({ onLogout, session }: AuthenticatedAppProps) {
               <Button
                 variant="light"
                 color="gray"
+                radius="xl"
                 onClick={() => setDraftQuantity((current) => Math.max(0, current - 1))}
               >
                 -1
@@ -1152,6 +1298,7 @@ function AuthenticatedApp({ onLogout, session }: AuthenticatedAppProps) {
               <Button
                 variant="light"
                 color="green"
+                radius="xl"
                 onClick={() => setDraftQuantity((current) => current + 1)}
               >
                 +1
@@ -1160,6 +1307,7 @@ function AuthenticatedApp({ onLogout, session }: AuthenticatedAppProps) {
 
             <Button
               color="dark"
+              radius="xl"
               loading={saveQuantityMutation.isPending}
               onClick={() =>
                 saveQuantityMutation.mutate({
@@ -1177,7 +1325,24 @@ function AuthenticatedApp({ onLogout, session }: AuthenticatedAppProps) {
   );
 }
 
-function StatCard({
+function MiniMetric({
+  label,
+  tone,
+  value,
+}: {
+  label: string;
+  tone: 'accent' | 'dark' | 'muted';
+  value: string;
+}) {
+  return (
+    <div className={`mini-metric mini-metric-${tone}`}>
+      <span className="mini-metric-value">{value}</span>
+      <span className="mini-metric-label">{label}</span>
+    </div>
+  );
+}
+
+function SummaryPill({
   icon: Icon,
   label,
   value,
@@ -1187,25 +1352,39 @@ function StatCard({
   value: string;
 }) {
   return (
-    <Card className="panel-card" padding="lg" radius="lg">
-      <Stack gap="sm">
-        <ThemeIcon size={42} radius="md" variant="light" color="green">
-          <Icon size={20} />
-        </ThemeIcon>
+    <div className="summary-pill">
+      <Icon size={15} />
+      <span>{label}</span>
+      <strong>{value}</strong>
+    </div>
+  );
+}
+
+function SocialRow({
+  action,
+  subtitle,
+  title,
+}: {
+  action: ReactNode;
+  subtitle: string;
+  title: string;
+}) {
+  return (
+    <div className="row-card social-row">
+      <div>
+        <Text fw={700}>{title}</Text>
         <Text size="sm" c="dimmed">
-          {label}
+          {subtitle}
         </Text>
-        <Text fw={800} size="2rem" c="dark.8">
-          {value}
-        </Text>
-      </Stack>
-    </Card>
+      </div>
+      {action}
+    </div>
   );
 }
 
 function EmptyState({ title, text }: { text: string; title: string }) {
   return (
-    <Card className="empty-card" padding="xl" radius="lg">
+    <Card className="empty-card" padding="xl" radius="xl">
       <Stack gap="xs" align="center">
         <Text fw={700}>{title}</Text>
         <Text size="sm" c="dimmed" ta="center">
@@ -1218,7 +1397,9 @@ function EmptyState({ title, text }: { text: string; title: string }) {
 
 function getRelation(profileId: string, userId: string, friendships: Friendship[]) {
   const friendship = friendships.find(
-    (item) => item.user_id_1 === profileId || item.user_id_2 === profileId,
+    (item) =>
+      (item.user_id_1 === userId && item.user_id_2 === profileId) ||
+      (item.user_id_2 === userId && item.user_id_1 === profileId),
   );
 
   if (!friendship) {
@@ -1262,6 +1443,23 @@ function getCountryLabel(country: Country | null) {
 
 function translateCountryName(name: string, iso: string) {
   return countryLabelsEs[iso] ?? name;
+}
+
+function getStickerNumberValue(numero: string) {
+  const match = numero.match(/(\d+)$/);
+  return match ? Number(match[1]) : Number.MAX_SAFE_INTEGER;
+}
+
+function formatStickerNumber(numero: string) {
+  const match = numero.match(/(\d+)$/);
+  return match ? match[1] : numero;
+}
+
+function getCountryOrderValue(iso?: string | null) {
+  const index = countryDisplayOrder.indexOf(
+    (iso ?? '') as (typeof countryDisplayOrder)[number],
+  );
+  return index === -1 ? Number.MAX_SAFE_INTEGER : index;
 }
 
 export default App;
