@@ -6,10 +6,16 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "build:android": "npm run build && npx cap sync android",
+    "cap:sync": "npx cap sync",
+    "android": "npx cap open android",
     "lint": "eslint .",
     "preview": "vite preview"
   },
   "dependencies": {
+    "@capacitor/android": "^8.3.1",
+    "@capacitor/cli": "^8.3.1",
+    "@capacitor/core": "^8.3.1",
     "@emotion/react": "^11.14.0",
     "@mantine/core": "^7.17.8",
     "@mantine/hooks": "^7.17.8",

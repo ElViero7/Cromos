@@ -11,6 +11,7 @@ import {
   Container,
   Group,
   Loader,
+  Drawer,
   Modal,
   NumberInput,
   PasswordInput,
@@ -418,6 +419,11 @@ function AuthScreen() {
         <form onSubmit={submit}>
           <Stack gap="lg">
             <div>
+              <img
+                src="/cromolink-logo-2026.png"
+                alt="CromoLink 2026"
+                className="brand-logo auth-brand-logo"
+              />
               <Badge variant="light" color="green" radius="xl" mb="md">
                 Cromos Mundial 2026
               </Badge>
@@ -493,6 +499,8 @@ function AuthenticatedApp({ onLogout, session }: AuthenticatedAppProps) {
   const [draftQuantity, setDraftQuantity] = useState<number>(0);
   const [searchValue, setSearchValue] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+  const [countryDrawerOpened, setCountryDrawerOpened] = useState(false);
+  const [countrySearch, setCountrySearch] = useState('');
   const queryClient = useQueryClient();
   const userId = session.user.id;
   const username = String(session.user.user_metadata.username ?? 'usuario');
@@ -796,6 +804,9 @@ function AuthenticatedApp({ onLogout, session }: AuthenticatedAppProps) {
   const teamCountries = countries.filter(
     (country) => country.iso !== 'FWC' && country.iso !== 'COK',
   );
+  const filteredTeamCountries = teamCountries.filter((country) =>
+    getCountryLabel(country).toLowerCase().includes(countrySearch.trim().toLowerCase()),
+  );
   const filteredStickers = stickers.filter((item) => {
     const iso = item.pais?.iso;
     const matchesSection =
@@ -851,7 +862,12 @@ function AuthenticatedApp({ onLogout, session }: AuthenticatedAppProps) {
     <>
       <div className="mobile-app-shell">
         <header className="mobile-topbar">
-          <div>
+          <div className="topbar-brand">
+            <img
+              src="/cromolink-logo-2026.png"
+              alt="CromoLink 2026"
+              className="brand-logo topbar-logo"
+            />
             <Text className="eyebrow-text">Mi album</Text>
             <Title order={1} className="screen-title">
               {activeTab === 'dashboard'
@@ -878,6 +894,22 @@ function AuthenticatedApp({ onLogout, session }: AuthenticatedAppProps) {
         <main className="mobile-screen">
           {activeTab === 'dashboard' ? (
             <Stack gap="lg">
+              <button
+                type="button"
+                className="floating-selection-trigger"
+                onClick={() => {
+                  setCountrySearch('');
+                  setCountryDrawerOpened(true);
+                }}
+              >
+                <span className="floating-selection-label">Seleccion</span>
+                <span className="floating-selection-value">
+                  {countryFilter
+                    ? getCountryLabel(teamCountries.find((country) => country.id === countryFilter) ?? null)
+                    : 'Todas'}
+                </span>
+              </button>
+
               <section className="hero-panel collection-hero">
                 <div className="collection-progress">
                   <RingProgress
@@ -931,22 +963,7 @@ function AuthenticatedApp({ onLogout, session }: AuthenticatedAppProps) {
                       </Badge>
                   </Group>
 
-                  <SimpleGrid cols={{ base: 1, xs: 2 }} spacing="sm">
-                    <Select
-                      label="Pais"
-                      placeholder="Todos"
-                      data={teamCountries.map((country) => ({
-                        label: getCountryLabel(country),
-                        value: country.id,
-                      }))}
-                      value={countryFilter}
-                      onChange={setCountryFilter}
-                      disabled={sectionFilter !== 'teams'}
-                      searchable
-                      nothingFoundMessage="No hay paises"
-                      clearable
-                    />
-
+                  <SimpleGrid cols={{ base: 1 }} spacing="sm">
                     <Select
                       label="Posicion"
                       placeholder="Todas"
@@ -1008,15 +1025,45 @@ function AuthenticatedApp({ onLogout, session }: AuthenticatedAppProps) {
                           </span>
                         </div>
 
-                        <div className="sticker-silhouette" aria-hidden="true" />
+                        <div className="sticker-silhouette" aria-hidden="true">
+                          {sticker.posicion === 'escudo' &&
+                          sticker.pais?.iso &&
+                          sticker.pais.iso !== 'FWC' &&
+                          sticker.pais.iso !== 'COK' ? (
+                            <img
+                              src={getShieldSrc(sticker.pais.iso)}
+                              alt={`Escudo de ${getCountryLabel(sticker.pais)}`}
+                              className="sticker-main-shield-image"
+                              onError={(event) => {
+                                event.currentTarget.style.display = 'none';
+                              }}
+                            />
+                          ) : null}
+                        </div>
 
                         <div className="sticker-card-body">
                           <Text fw={700} className="sticker-name">
                             {sticker.nombre}
                           </Text>
-                          <Text size="sm" c="dimmed" className="sticker-meta">
-                            {getCountryLabel(sticker.pais) ?? 'Sin pais'} · {labelForSticker(sticker)}
-                          </Text>
+                          <div className="sticker-meta-row">
+                            <Text size="sm" c="dimmed" className="sticker-meta">
+                              {compactLabelForSticker(sticker)}
+                            </Text>
+                            {sticker.pais?.iso &&
+                            sticker.pais.iso !== 'FWC' &&
+                            sticker.pais.iso !== 'COK' ? (
+                              <div className="sticker-mini-shield">
+                                <img
+                                  src={getShieldSrc(sticker.pais.iso)}
+                                  alt={`Escudo de ${getCountryLabel(sticker.pais)}`}
+                                  className="sticker-mini-shield-image"
+                                  onError={(event) => {
+                                    event.currentTarget.style.display = 'none';
+                                  }}
+                                />
+                              </div>
+                            ) : null}
+                          </div>
                         </div>
                       </button>
                     );
@@ -1321,6 +1368,72 @@ function AuthenticatedApp({ onLogout, session }: AuthenticatedAppProps) {
           </Stack>
         ) : null}
       </Modal>
+
+      <Drawer
+        opened={countryDrawerOpened}
+        onClose={() => setCountryDrawerOpened(false)}
+        position="bottom"
+        size="min(78vh, 42rem)"
+        radius="24px 24px 0 0"
+        title="Cambiar seleccion"
+        classNames={{
+          body: 'country-drawer-body',
+          content: 'country-drawer-content',
+          header: 'country-drawer-header',
+          title: 'country-drawer-title',
+        }}
+      >
+        <div className="country-drawer-actions">
+          <TextInput
+            placeholder="Buscar seleccion"
+            value={countrySearch}
+            onChange={(event) => setCountrySearch(event.currentTarget.value)}
+            className="country-drawer-search"
+          />
+
+          <button
+            type="button"
+            className={!countryFilter ? 'country-chip active' : 'country-chip'}
+            onClick={() => {
+              setSectionFilter('teams');
+              setCountryFilter(null);
+              setCountryDrawerOpened(false);
+            }}
+          >
+            <span className="country-chip-name">Todas las selecciones</span>
+            <span className="country-chip-meta">Ver album completo</span>
+          </button>
+
+          {filteredTeamCountries.map((country) => (
+            <button
+              key={country.id}
+              type="button"
+              className={countryFilter === country.id ? 'country-chip active' : 'country-chip'}
+              onClick={() => {
+                setSectionFilter('teams');
+                setCountryFilter(country.id);
+                setCountryDrawerOpened(false);
+              }}
+            >
+              <span className="country-chip-crest">
+                <img
+                  src={getShieldSrc(country.iso)}
+                  alt={`Escudo de ${getCountryLabel(country)}`}
+                  className="country-chip-image"
+                  onError={(event) => {
+                    event.currentTarget.style.display = 'none';
+                  }}
+                />
+                <span className="country-chip-fallback">{country.iso}</span>
+              </span>
+              <span className="country-chip-copy">
+                <span className="country-chip-name">{getCountryLabel(country)}</span>
+                <span className="country-chip-meta">{country.iso}</span>
+              </span>
+            </button>
+          ))}
+        </div>
+      </Drawer>
     </>
   );
 }
@@ -1433,6 +1546,27 @@ function labelForSticker(sticker: StickerRecord) {
   return capitalize(sticker.posicion);
 }
 
+function compactLabelForSticker(sticker: StickerRecord) {
+  if (sticker.pais?.iso === 'FWC') {
+    return 'FWC';
+  }
+
+  if (sticker.pais?.iso === 'COK') {
+    return 'Coca-Cola';
+  }
+
+  const compactLabels: Record<string, string> = {
+    centrocampista: 'Centroc.',
+    delantero: 'Delantero',
+    defensa: 'Defensa',
+    escudo: 'Escudo',
+    especial: 'Especial',
+    portero: 'Portero',
+  };
+
+  return compactLabels[sticker.posicion] ?? capitalize(sticker.posicion);
+}
+
 function getCountryLabel(country: Country | null) {
   if (!country) {
     return 'Sin pais';
@@ -1443,6 +1577,10 @@ function getCountryLabel(country: Country | null) {
 
 function translateCountryName(name: string, iso: string) {
   return countryLabelsEs[iso] ?? name;
+}
+
+function getShieldSrc(iso: string) {
+  return `/shields/${iso}.png`;
 }
 
 function getStickerNumberValue(numero: string) {

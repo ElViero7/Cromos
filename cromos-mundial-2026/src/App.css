@@ -4,7 +4,7 @@
     radial-gradient(circle at top left, rgba(0, 122, 255, 0.1), transparent 24%),
     radial-gradient(circle at top right, rgba(255, 214, 10, 0.12), transparent 18%),
     radial-gradient(circle at bottom center, rgba(255, 59, 48, 0.06), transparent 26%),
-    linear-gradient(180deg, #fcb621 0%, #c0acab 100%);
+    linear-gradient(180deg, #fcb621 0%, #f2f2f7 250%);
 }
 
 .app-page {
@@ -38,6 +38,18 @@
 
 .auth-card {
   width: min(100%, 30rem);
+}
+
+.brand-logo {
+  display: block;
+  object-fit: contain;
+}
+
+.auth-brand-logo {
+  width: min(100%, 12rem);
+  margin: 0 0 1rem;
+  border-radius: 24px;
+  box-shadow: 0 16px 32px rgba(0, 122, 255, 0.14);
 }
 
 .auth-title {
@@ -90,6 +102,19 @@
   padding: 0.15rem 0 1rem;
 }
 
+.topbar-brand {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.topbar-logo {
+  width: 4.5rem;
+  margin: 0 0 0.5rem;
+  border-radius: 18px;
+  box-shadow: 0 12px 24px rgba(0, 122, 255, 0.12);
+}
+
 .eyebrow-text {
   margin: 0 0 0.15rem;
   font-size: 0.72rem;
@@ -119,6 +144,40 @@
 
 .mobile-screen {
   display: block;
+}
+
+.floating-selection-trigger {
+  position: sticky;
+  top: 0.55rem;
+  z-index: 18;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.14rem;
+  width: fit-content;
+  max-width: min(100%, 18rem);
+  padding: 0.8rem 1rem;
+  border: 1px solid rgba(176, 176, 176, 0.28);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 14px 28px rgba(28, 28, 30, 0.08);
+  backdrop-filter: blur(12px);
+  text-align: left;
+  cursor: pointer;
+}
+
+.floating-selection-label {
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #007aff;
+}
+
+.floating-selection-value {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #1c1c1e;
 }
 
 .hero-panel {
@@ -281,9 +340,7 @@
   padding: 0;
   overflow: hidden;
   text-align: left;
-  background:
-    linear-gradient(180deg, rgba(0, 122, 255, 0.04), rgba(28, 28, 30, 0.02)),
-    rgba(255, 255, 255, 0.94);
+  background: rgba(255, 255, 255, 0.98);
   box-shadow: 0 12px 24px rgba(32, 39, 34, 0.07);
   cursor: pointer;
 }
@@ -299,9 +356,7 @@
 
 .mobile-sticker-card.is-owned {
   border-color: rgba(52, 199, 89, 0.18);
-  background:
-    linear-gradient(180deg, rgba(52, 199, 89, 0.24), rgba(52, 199, 89, 0.05) 42%, rgba(255, 255, 255, 0.98)),
-    rgba(255, 255, 255, 0.96);
+  background: rgba(255, 255, 255, 0.98);
   box-shadow:
     0 10px 22px rgba(52, 199, 89, 0.12),
     inset 0 1px 0 rgba(255, 255, 255, 0.75);
@@ -309,9 +364,7 @@
 
 .mobile-sticker-card.is-duplicate {
   border-color: rgba(255, 59, 48, 0.2);
-  background:
-    linear-gradient(180deg, rgba(255, 149, 0, 0.28), rgba(255, 59, 48, 0.08) 42%, rgba(255, 255, 255, 0.98)),
-    rgba(255, 255, 255, 0.96);
+  background: rgba(255, 255, 255, 0.98);
   box-shadow:
     0 10px 22px rgba(255, 59, 48, 0.13),
     inset 0 1px 0 rgba(255, 255, 255, 0.75);
@@ -342,6 +395,13 @@
   align-items: center;
   justify-content: space-between;
   z-index: 1;
+}
+
+.sticker-mini-shield-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 
 .sticker-number,
@@ -378,41 +438,44 @@
 
 .sticker-silhouette {
   height: 8.2rem;
-  background:
-    radial-gradient(circle at 72% 28%, rgba(255, 255, 255, 0.58), transparent 16%),
-    linear-gradient(135deg, rgba(0, 122, 255, 0.14), rgba(58, 63, 72, 0.08)),
-    linear-gradient(180deg, rgba(42, 46, 52, 0.1), rgba(12, 13, 15, 0.78));
+  background: #ffffff;
   position: relative;
+  border-bottom: 1px solid rgba(176, 176, 176, 0.14);
+}
+
+.sticker-main-shield-image {
+  position: absolute;
+  inset: 0.9rem;
+  width: calc(100% - 1.8rem);
+  height: calc(100% - 1.8rem);
+  object-fit: contain;
+  z-index: 1;
+  filter: drop-shadow(0 10px 18px rgba(0, 0, 0, 0.18));
 }
 
 .mobile-sticker-card.is-owned .sticker-silhouette {
-  background:
-    radial-gradient(circle at 72% 28%, rgba(255, 255, 255, 0.58), transparent 16%),
-    linear-gradient(135deg, rgba(52, 199, 89, 0.3), rgba(58, 63, 72, 0.08)),
-    linear-gradient(180deg, rgba(42, 46, 52, 0.08), rgba(12, 13, 15, 0.72));
+  background: #ffffff;
 }
 
 .mobile-sticker-card.is-duplicate .sticker-silhouette {
-  background:
-    radial-gradient(circle at 72% 28%, rgba(255, 255, 255, 0.58), transparent 16%),
-    linear-gradient(135deg, rgba(255, 149, 0, 0.32), rgba(255, 59, 48, 0.16)),
-    linear-gradient(180deg, rgba(42, 46, 52, 0.08), rgba(12, 13, 15, 0.72));
+  background: #ffffff;
 }
 
 .sticker-silhouette::before {
-  content: '';
-  position: absolute;
-  inset: 18% 18% 0;
-  background: linear-gradient(180deg, rgba(16, 17, 20, 0.9), rgba(19, 20, 23, 0.66));
-  clip-path: polygon(48% 2%, 62% 16%, 69% 33%, 80% 42%, 78% 56%, 67% 63%, 71% 82%, 62% 98%, 49% 91%, 42% 73%, 37% 56%, 31% 42%, 32% 23%);
-  filter: drop-shadow(-16px 10px 0 rgba(18, 20, 23, 0.36));
-  opacity: 0.92;
+  content: none;
 }
 
 .sticker-card-body {
   position: relative;
   z-index: 1;
   padding: 0.7rem 0.7rem 0.8rem;
+}
+
+.sticker-meta-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
 }
 
 .sticker-name {
@@ -425,8 +488,23 @@
 }
 
 .sticker-meta {
+  flex: 1 1 auto;
+  min-width: 0;
   line-height: 1.4;
   font-size: 0.72rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sticker-mini-shield {
+  flex: 0 0 1.4rem;
+  width: 1.4rem;
+  height: 1.4rem;
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 4px 10px rgba(28, 28, 30, 0.1);
 }
 
 .section-card {
@@ -528,6 +606,100 @@
   min-height: 180px;
   display: grid;
   place-items: center;
+}
+
+.country-drawer-content {
+  background: #ffffff;
+}
+
+.country-drawer-header {
+  border-bottom: 1px solid rgba(176, 176, 176, 0.18);
+}
+
+.country-drawer-title {
+  font-weight: 800;
+  color: #1c1c1e;
+}
+
+.country-drawer-body {
+  padding-top: 0.6rem;
+}
+
+.country-drawer-actions {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.country-drawer-search input {
+  border-radius: 16px;
+  background: #f2f2f7;
+}
+
+.country-chip {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  width: 100%;
+  border: 1px solid rgba(176, 176, 176, 0.2);
+  border-radius: 20px;
+  padding: 0.9rem 0.95rem;
+  background: #f2f2f7;
+  text-align: left;
+  cursor: pointer;
+}
+
+.country-chip.active {
+  background: rgba(255, 59, 48, 0.08);
+  border-color: rgba(255, 59, 48, 0.22);
+}
+
+.country-chip-crest {
+  position: relative;
+  flex: 0 0 3rem;
+  width: 3rem;
+  height: 3rem;
+  border-radius: 999px;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(135deg, #007aff, #34c759);
+  color: #ffffff;
+  font-size: 0.74rem;
+  font-weight: 800;
+}
+
+.country-chip-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  background: #ffffff;
+}
+
+.country-chip-fallback {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+}
+
+.country-chip-copy {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.country-chip-name {
+  color: #1c1c1e;
+  font-size: 0.96rem;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.country-chip-meta {
+  color: #6f6f78;
+  font-size: 0.78rem;
+  line-height: 1.3;
 }
 
 .bottom-nav {
