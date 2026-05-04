@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { FormEvent, ReactNode } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import {
@@ -217,6 +217,61 @@ const countryDisplayOrder = [
   'UZB',
 ] as const;
 
+const albumTeamCountryOrder = [
+  'MEX',
+  'RSA',
+  'KOR',
+  'CZE',
+  'CAN',
+  'BIH',
+  'QAT',
+  'SUI',
+  'BRA',
+  'MAR',
+  'HTI',
+  'SCO',
+  'USA',
+  'PAR',
+  'AUS',
+  'TUR',
+  'GER',
+  'CUW',
+  'CIV',
+  'ECU',
+  'NED',
+  'JPN',
+  'SWE',
+  'TUN',
+  'BEL',
+  'EGY',
+  'IRN',
+  'NZL',
+  'ESP',
+  'CPV',
+  'SAU',
+  'URU',
+  'FRA',
+  'SEN',
+  'IRQ',
+  'NOR',
+  'ARG',
+  'ALG',
+  'AUT',
+  'JOR',
+  'POR',
+  'COD',
+  'UZB',
+  'COL',
+  'ENG',
+  'CRO',
+  'GHA',
+  'PAN',
+] as const;
+
+const albumTeamCountryOrderIndex = new Map<string, number>(
+  albumTeamCountryOrder.map((iso, index) => [iso, index]),
+);
+
 function App() {
   const [session, setSession] = useState<Session | null>(null);
   const [booting, setBooting] = useState(true);
@@ -326,6 +381,23 @@ function App() {
       </AppShell.Main>
     </AppShell>
   );
+}
+
+function getScrollableParent(element: HTMLElement | null) {
+  let current = element?.parentElement ?? null;
+
+  while (current) {
+    const style = window.getComputedStyle(current);
+    const overflowY = style.overflowY;
+
+    if ((overflowY === 'auto' || overflowY === 'scroll') && current.scrollHeight > current.clientHeight) {
+      return current;
+    }
+
+    current = current.parentElement;
+  }
+
+  return null;
 }
 
 function AuthScreen() {
@@ -503,6 +575,7 @@ function AuthenticatedApp({ onLogout, session }: AuthenticatedAppProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [countryDrawerOpened, setCountryDrawerOpened] = useState(false);
   const [countrySearch, setCountrySearch] = useState('');
+  const selectedCountryChipRef = useRef<HTMLButtonElement | null>(null);
   const queryClient = useQueryClient();
   const userId = session.user.id;
   const username = String(session.user.user_metadata.username ?? 'usuario');
@@ -803,9 +876,18 @@ function AuthenticatedApp({ onLogout, session }: AuthenticatedAppProps) {
     (item) => item.status === 'pending' && item.created_by !== userId,
   );
   const ownCollectionMap = new Map(collection.map((item) => [item.cromo_id, item.cantidad]));
-  const teamCountries = countries.filter(
-    (country) => country.iso !== 'FWC' && country.iso !== 'COK',
-  );
+  const teamCountries = countries
+    .filter((country) => country.iso !== 'FWC' && country.iso !== 'COK')
+    .sort((left, right) => {
+      const leftOrder = albumTeamCountryOrderIndex.get(left.iso) ?? Number.MAX_SAFE_INTEGER;
+      const rightOrder = albumTeamCountryOrderIndex.get(right.iso) ?? Number.MAX_SAFE_INTEGER;
+
+      if (leftOrder !== rightOrder) {
+        return leftOrder - rightOrder;
+      }
+
+      return getCountryLabel(left).localeCompare(getCountryLabel(right));
+    });
   const filteredTeamCountries = teamCountries.filter((country) =>
     getCountryLabel(country).toLowerCase().includes(countrySearch.trim().toLowerCase()),
   );
@@ -859,6 +941,43 @@ function AuthenticatedApp({ onLogout, session }: AuthenticatedAppProps) {
     setSelectedSticker(sticker);
     setDraftQuantity(ownCollectionMap.get(sticker.id) ?? 0);
   };
+
+  const scrollSelectedCountryIntoView = () => {
+    const selectedChip = selectedCountryChipRef.current;
+    const scrollParent = getScrollableParent(selectedChip);
+
+    if (!selectedChip || !scrollParent) {
+      return;
+    }
+
+    const parentRect = scrollParent.getBoundingClientRect();
+    const chipRect = selectedChip.getBoundingClientRect();
+    const currentScrollTop = scrollParent.scrollTop;
+    const targetScrollTop =
+      currentScrollTop +
+      (chipRect.top - parentRect.top) -
+      scrollParent.clientHeight / 2 +
+      selectedChip.clientHeight / 2;
+
+    scrollParent.scrollTo({
+      top: Math.max(targetScrollTop, 0),
+      behavior: 'auto',
+    });
+  };
+
+  useEffect(() => {
+    if (!countryDrawerOpened) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      scrollSelectedCountryIntoView();
+    }, 220);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [countryDrawerOpened, countryFilter, filteredTeamCountries]);
 
   return (
     <>
@@ -1374,6 +1493,7 @@ function AuthenticatedApp({ onLogout, session }: AuthenticatedAppProps) {
       <Drawer
         opened={countryDrawerOpened}
         onClose={() => setCountryDrawerOpened(false)}
+        onEnterTransitionEnd={scrollSelectedCountryIntoView}
         position="bottom"
         size="min(78vh, 42rem)"
         radius="24px 24px 0 0"
@@ -1409,6 +1529,7 @@ function AuthenticatedApp({ onLogout, session }: AuthenticatedAppProps) {
           {filteredTeamCountries.map((country) => (
             <button
               key={country.id}
+              ref={countryFilter === country.id ? selectedCountryChipRef : null}
               type="button"
               className={countryFilter === country.id ? 'country-chip active' : 'country-chip'}
               onClick={() => {
