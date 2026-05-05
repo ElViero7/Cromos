@@ -42,6 +42,8 @@ import {
   normalizeUsername,
   validateUsername,
 } from './lib/usernameAuth';
+import devSportsdbHeadshots from './data/devSportsdbHeadshots.json';
+import devSportsdbSpainHeadshots from './data/devSportsdbSpainHeadshots.json';
 import './App.css';
 
 type AppTab = 'dashboard' | 'social' | 'market';
@@ -55,12 +57,16 @@ type Country = {
 
 type StickerRecord = {
   avatar_url: string | null;
+  avatar_url_sportsdb: string | null;
   id: string;
   nombre: string;
   numero: string;
   posicion: string;
   pais: Country | null;
 };
+
+const devSportsdbHeadshotMap = devSportsdbHeadshots as Record<string, string>;
+const devSportsdbSpainHeadshotMap = devSportsdbSpainHeadshots as Record<string, string>;
 
 type CollectionRow = {
   cantidad: number;
@@ -85,6 +91,7 @@ type Friendship = {
 
 type RepeatedSticker = {
   avatar_url?: string | null;
+  avatar_url_sportsdb?: string | null;
   cantidad: number;
   cromo_id: string;
   cromo_nombre: string;
@@ -582,6 +589,23 @@ function AuthenticatedApp({ onLogout, session }: AuthenticatedAppProps) {
   const userId = session.user.id;
   const username = String(session.user.user_metadata.username ?? 'usuario');
 
+  function getStickerImageUrl(sticker: StickerRecord) {
+    if (sticker.avatar_url_sportsdb) {
+      return sticker.avatar_url_sportsdb;
+    }
+
+    if (import.meta.env.DEV && sticker.posicion !== 'escudo') {
+      return (
+        devSportsdbHeadshotMap[sticker.numero] ??
+        devSportsdbSpainHeadshotMap[sticker.numero] ??
+        sticker.avatar_url ??
+        null
+      );
+    }
+
+    return sticker.avatar_url ?? null;
+  }
+
   const countriesQuery = useQuery({
     queryKey: ['countries'],
     queryFn: async () => {
@@ -603,7 +627,7 @@ function AuthenticatedApp({ onLogout, session }: AuthenticatedAppProps) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('cromos')
-        .select('id, numero, nombre, posicion, avatar_url, pais:paises(id, nombre, iso)')
+        .select('id, numero, nombre, posicion, avatar_url, avatar_url_sportsdb, pais:paises(id, nombre, iso)')
         .order('numero');
 
       if (error) {
@@ -1134,9 +1158,9 @@ function AuthenticatedApp({ onLogout, session }: AuthenticatedAppProps) {
                         onClick={() => openStickerModal(sticker)}
                       >
                         <div className="sticker-silhouette" aria-hidden="true">
-                          {sticker.avatar_url ? (
+                          {getStickerImageUrl(sticker) ? (
                             <img
-                              src={sticker.avatar_url}
+                              src={getStickerImageUrl(sticker) ?? undefined}
                               alt={sticker.nombre}
                               className="sticker-main-avatar-image"
                               onError={(event) => {
@@ -1461,10 +1485,10 @@ function AuthenticatedApp({ onLogout, session }: AuthenticatedAppProps) {
         {selectedSticker ? (
           <Stack gap="md">
             <div>
-              {selectedSticker.avatar_url ? (
+              {getStickerImageUrl(selectedSticker) ? (
                 <div className="sticker-modal-portrait">
                   <img
-                    src={selectedSticker.avatar_url}
+                    src={getStickerImageUrl(selectedSticker) ?? undefined}
                     alt={selectedSticker.nombre}
                     className="sticker-modal-portrait-image"
                   />

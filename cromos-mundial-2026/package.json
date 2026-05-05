@@ -10,7 +10,9 @@
     "cap:sync": "npx cap sync",
     "android": "npx cap open android",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "import:headshots:sportsdb:spain": "node scripts/import-player-headshots-sportsdb.mjs --overrides scripts/player-headshot-sportsdb-overrides.example.json",
+    "import:headshots:sportsdb:all": "node scripts/import-player-headshots-sportsdb.mjs --all-countries --report-path supabase/player_headshots_sportsdb_all_report.json --dev-map-path src/data/devSportsdbHeadshots.json --overrides scripts/player-headshot-sportsdb-overrides.example.json"
   },
   "dependencies": {
     "@capacitor/android": "^8.3.1",

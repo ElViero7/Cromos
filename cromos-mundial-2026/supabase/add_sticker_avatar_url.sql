@@ -1,6 +1,9 @@
 alter table public.cromos
   add column if not exists avatar_url text;
 
+alter table public.cromos
+  add column if not exists avatar_url_sportsdb text;
+
 create or replace view public.v_repetidos
 with (security_invoker = true)
 as
@@ -11,6 +14,7 @@ select
   c.numero,
   c.nombre as cromo_nombre,
   c.avatar_url,
+  c.avatar_url_sportsdb,
   pa.nombre as pais,
   pa.iso as pais_iso,
   c.posicion,
