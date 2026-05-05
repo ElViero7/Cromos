@@ -54,6 +54,7 @@ type Country = {
 };
 
 type StickerRecord = {
+  avatar_url: string | null;
   id: string;
   nombre: string;
   numero: string;
@@ -83,6 +84,7 @@ type Friendship = {
 };
 
 type RepeatedSticker = {
+  avatar_url?: string | null;
   cantidad: number;
   cromo_id: string;
   cromo_nombre: string;
@@ -601,7 +603,7 @@ function AuthenticatedApp({ onLogout, session }: AuthenticatedAppProps) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('cromos')
-        .select('id, numero, nombre, posicion, pais:paises(id, nombre, iso)')
+        .select('id, numero, nombre, posicion, avatar_url, pais:paises(id, nombre, iso)')
         .order('numero');
 
       if (error) {
@@ -1131,26 +1133,20 @@ function AuthenticatedApp({ onLogout, session }: AuthenticatedAppProps) {
                         }
                         onClick={() => openStickerModal(sticker)}
                       >
-                        <div className="sticker-card-header">
-                          <span className="sticker-number">#{formatStickerNumber(sticker.numero)}</span>
-                          <span
-                            className={
-                              quantity > 1
-                                ? 'sticker-qty sticker-qty-dup'
-                                : quantity > 0
-                                  ? 'sticker-qty sticker-qty-own'
-                                  : 'sticker-qty'
-                            }
-                          >
-                            x{quantity}
-                          </span>
-                        </div>
-
                         <div className="sticker-silhouette" aria-hidden="true">
-                          {sticker.posicion === 'escudo' &&
-                          sticker.pais?.iso &&
-                          sticker.pais.iso !== 'FWC' &&
-                          sticker.pais.iso !== 'COK' ? (
+                          {sticker.avatar_url ? (
+                            <img
+                              src={sticker.avatar_url}
+                              alt={sticker.nombre}
+                              className="sticker-main-avatar-image"
+                              onError={(event) => {
+                                event.currentTarget.style.display = 'none';
+                              }}
+                            />
+                          ) : sticker.posicion === 'escudo' &&
+                            sticker.pais?.iso &&
+                            sticker.pais.iso !== 'FWC' &&
+                            sticker.pais.iso !== 'COK' ? (
                             <img
                               src={getShieldSrc(sticker.pais.iso)}
                               alt={`Escudo de ${getCountryLabel(sticker.pais)}`}
@@ -1159,10 +1155,36 @@ function AuthenticatedApp({ onLogout, session }: AuthenticatedAppProps) {
                                 event.currentTarget.style.display = 'none';
                               }}
                             />
-                          ) : null}
+                          ) : sticker.nombre === 'Equipo' ? (
+                            <img
+                              src="/team-placeholder.svg"
+                              alt={`Placeholder de equipo para ${sticker.nombre}`}
+                              className="sticker-main-avatar-image"
+                            />
+                          ) : (
+                            <img
+                              src="/player-placeholder.svg"
+                              alt={`Placeholder de ${sticker.nombre}`}
+                              className="sticker-main-avatar-image"
+                            />
+                          )}
                         </div>
 
                         <div className="sticker-card-body">
+                          <div className="sticker-card-header">
+                            <span className="sticker-number">#{formatStickerNumber(sticker.numero)}</span>
+                            <span
+                              className={
+                                quantity > 1
+                                  ? 'sticker-qty sticker-qty-dup'
+                                  : quantity > 0
+                                    ? 'sticker-qty sticker-qty-own'
+                                    : 'sticker-qty'
+                              }
+                            >
+                              x{quantity}
+                            </span>
+                          </div>
                           <Text fw={700} className="sticker-name">
                             {sticker.nombre}
                           </Text>
@@ -1439,6 +1461,23 @@ function AuthenticatedApp({ onLogout, session }: AuthenticatedAppProps) {
         {selectedSticker ? (
           <Stack gap="md">
             <div>
+              {selectedSticker.avatar_url ? (
+                <div className="sticker-modal-portrait">
+                  <img
+                    src={selectedSticker.avatar_url}
+                    alt={selectedSticker.nombre}
+                    className="sticker-modal-portrait-image"
+                  />
+                </div>
+              ) : selectedSticker.posicion !== 'escudo' ? (
+                <div className="sticker-modal-portrait">
+                  <img
+                    src="/player-placeholder.svg"
+                    alt={`Placeholder de ${selectedSticker.nombre}`}
+                    className="sticker-modal-portrait-image"
+                  />
+                </div>
+              ) : null}
               <Text fw={700}>{selectedSticker.nombre}</Text>
               <Text size="sm" c="dimmed">
                 {getCountryLabel(selectedSticker.pais) ?? 'Sin pais'} · {labelForSticker(selectedSticker)}
