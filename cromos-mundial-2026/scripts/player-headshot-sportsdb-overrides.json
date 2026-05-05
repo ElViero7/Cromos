@@ -1,0 +1,118 @@
+{
+  "CAN6": {
+    "search": "Richie Laryea"
+  },
+  "CIV3": {
+    "search": "Ghislain Konan"
+  },
+  "ECU14": {
+    "search": "John Yeboah"
+  },
+  "EGY2": {
+    "search": "Mohamed El Shenawy"
+  },
+  "EGY20": {
+    "search": "Omar Marmoush"
+  },
+  "ESP10": {
+    "candidateName": "Rodri",
+    "creativeCommons": "No",
+    "imageType": "render",
+    "imageUrl": "https://r2.thesportsdb.com/images/media/player/render/2jnxtt1735801450.png",
+    "sourceTeam": "Manchester City",
+    "sourceUrl": "https://www.thesportsdb.com/player/34163415-rodri"
+  },
+  "ESP11": {
+    "playerId": "34172243"
+  },
+  "IRN11": {
+    "search": "Saeid Ezatolahi"
+  },
+  "IRN12": {
+    "search": "Saman Ghoddos"
+  },
+  "KOR10": {
+    "search": "Lee Jae-sung"
+  },
+  "KOR11": {
+    "search": "Hwang In-beom"
+  },
+  "KOR12": {
+    "search": "Lee Kang-in"
+  },
+  "KOR14": {
+    "search": "Paik Seung-ho"
+  },
+  "KOR16": {
+    "search": "Lee Dong-gyeong"
+  },
+  "KOR17": {
+    "search": "Cho Gue-sung"
+  },
+  "KOR18": {
+    "search": "Son Heung-min"
+  },
+  "KOR19": {
+    "search": "Hwang Hee-chan"
+  },
+  "KOR20": {
+    "search": "Oh Hyeon-gyu"
+  },
+  "KOR2": {
+    "search": "Jo Hyeon-woo"
+  },
+  "KOR3": {
+    "search": "Kim Seung-gyu"
+  },
+  "KOR4": {
+    "search": "Kim Min-jae"
+  },
+  "KOR6": {
+    "search": "Seol Young-woo"
+  },
+  "KOR7": {
+    "search": "Lee Han-beom"
+  },
+  "KOR8": {
+    "search": "Lee Tae-seok"
+  },
+  "KOR9": {
+    "search": "Lee Myung-jae"
+  },
+  "MAR14": {
+    "search": "Bilal El Khannouss"
+  },
+  "NOR5": {
+    "search": "Kristoffer Ajer"
+  },
+  "NOR6": {
+    "search": "Marcus Pedersen"
+  },
+  "PAN11": {
+    "search": "Anibal Godoy"
+  },
+  "PAR14": {
+    "search": "Matias Galarza"
+  },
+  "QAT16": {
+    "search": "Hassan Al-Haydos"
+  },
+  "SAU11": {
+    "search": "Abdullah Al Khaibari"
+  },
+  "SAU12": {
+    "search": "Nasser Al Dawsari"
+  },
+  "SAU16": {
+    "search": "Salem Al-Dawsari"
+  },
+  "SEN9": {
+    "search": "Idrissa Gueye"
+  },
+  "SUI9": {
+    "search": "Granit Xhaka"
+  },
+  "USA10": {
+    "search": "Weston McKennie"
+  }
+}

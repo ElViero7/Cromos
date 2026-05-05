@@ -44,6 +44,7 @@ import {
 } from './lib/usernameAuth';
 import devSportsdbHeadshots from './data/devSportsdbHeadshots.json';
 import devSportsdbSpainHeadshots from './data/devSportsdbSpainHeadshots.json';
+import { headshotSourceOverrides } from './data/headshotSourceOverrides';
 import './App.css';
 
 type AppTab = 'dashboard' | 'social' | 'market';
@@ -590,20 +591,34 @@ function AuthenticatedApp({ onLogout, session }: AuthenticatedAppProps) {
   const username = String(session.user.user_metadata.username ?? 'usuario');
 
   function getStickerImageUrl(sticker: StickerRecord) {
-    if (sticker.avatar_url_sportsdb) {
-      return sticker.avatar_url_sportsdb;
-    }
+    const preferredSource = headshotSourceOverrides[sticker.numero];
+    const sportsdbUrl = sticker.avatar_url_sportsdb;
+    const legacyUrl = sticker.avatar_url;
 
     if (import.meta.env.DEV && sticker.posicion !== 'escudo') {
-      return (
-        devSportsdbHeadshotMap[sticker.numero] ??
-        devSportsdbSpainHeadshotMap[sticker.numero] ??
-        sticker.avatar_url ??
-        null
-      );
+      const devSportsdbUrl =
+        devSportsdbHeadshotMap[sticker.numero] ?? devSportsdbSpainHeadshotMap[sticker.numero];
+
+      if (preferredSource === 'legacy') {
+        return legacyUrl ?? devSportsdbUrl ?? sportsdbUrl ?? null;
+      }
+
+      if (preferredSource === 'sportsdb') {
+        return devSportsdbUrl ?? sportsdbUrl ?? legacyUrl ?? null;
+      }
+
+      return devSportsdbUrl ?? sportsdbUrl ?? legacyUrl ?? null;
     }
 
-    return sticker.avatar_url ?? null;
+    if (preferredSource === 'legacy') {
+      return legacyUrl ?? sportsdbUrl ?? null;
+    }
+
+    if (preferredSource === 'sportsdb') {
+      return sportsdbUrl ?? legacyUrl ?? null;
+    }
+
+    return sportsdbUrl ?? legacyUrl ?? null;
   }
 
   const countriesQuery = useQuery({
