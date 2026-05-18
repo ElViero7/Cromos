@@ -576,7 +576,7 @@ function AuthenticatedApp({ onLogout, session }: AuthenticatedAppProps) {
       return sportsdbUrl ?? legacyUrl ?? null;
     }
 
-    return sportsdbUrl ?? legacyUrl ?? null;
+    return legacyUrl ?? sportsdbUrl ?? null;
   }
 
   const countriesQuery = useQuery({
