@@ -180,6 +180,17 @@
   color: #1c1c1e;
 }
 
+.inline-selection-trigger {
+  position: static;
+  width: 100%;
+  max-width: none;
+}
+
+.floating-selection-trigger:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+}
+
 .hero-panel {
   position: relative;
   overflow: hidden;
@@ -343,6 +354,10 @@
   background: rgba(255, 255, 255, 0.98);
   box-shadow: 0 12px 24px rgba(32, 39, 34, 0.07);
   cursor: pointer;
+}
+
+.mobile-sticker-card:disabled {
+  cursor: default;
 }
 
 .mobile-sticker-card::after {
@@ -734,7 +749,7 @@
   z-index: 40;
   width: min(100vw, 31rem);
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 0.2rem;
   padding: 0.25rem 0.35rem calc(env(safe-area-inset-bottom, 0px) + 0.2rem);
   border: 1px solid rgba(176, 176, 176, 0.28);
@@ -777,6 +792,25 @@
 .bottom-nav-label {
   font-size: 0.68rem;
   font-weight: 700;
+}
+
+.mantine-Notifications-root {
+  max-width: min(15rem, calc(100vw - 7.5rem));
+  right: 0.45rem !important;
+}
+
+.mantine-Notification-root {
+  border-radius: 16px;
+  padding: 0.65rem 0.75rem;
+}
+
+.mantine-Notification-title {
+  font-size: 0.82rem;
+}
+
+.mantine-Notification-description {
+  font-size: 0.74rem;
+  line-height: 1.25;
 }
 
 @media (min-width: 48em) {

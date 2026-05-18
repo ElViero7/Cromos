@@ -29,6 +29,7 @@ import {
   Handshake,
   Home,
   LogOut,
+  Repeat2,
   Search,
   ShieldCheck,
   ShoppingBag,
@@ -47,8 +48,9 @@ import devSportsdbSpainHeadshots from './data/devSportsdbSpainHeadshots.json';
 import { headshotSourceOverrides } from './data/headshotSourceOverrides';
 import './App.css';
 
-type AppTab = 'dashboard' | 'social' | 'market';
+type AppTab = 'dashboard' | 'social' | 'duplicates' | 'market';
 type DashboardSection = 'all' | 'fwc' | 'coca' | 'teams';
+type CountryPickerTarget = 'collection' | 'friendAlbum' | 'duplicates' | 'market';
 
 type Country = {
   id: string;
@@ -164,6 +166,7 @@ const countryLabelsEs: Record<string, string> = {
 const appTabs: Array<{ icon: typeof Home; label: string; value: AppTab }> = [
   { icon: Home, label: 'Coleccion', value: 'dashboard' },
   { icon: Users, label: 'Social', value: 'social' },
+  { icon: Repeat2, label: 'Repetidos', value: 'duplicates' },
   { icon: ShoppingBag, label: 'Mercado', value: 'market' },
 ];
 
@@ -173,59 +176,6 @@ const dashboardSections: Array<{ label: string; value: DashboardSection }> = [
   { label: 'Coca-Cola', value: 'coca' },
   { label: 'Todo', value: 'all' },
 ];
-
-const countryDisplayOrder = [
-  'FWC',
-  'COK',
-  'ALG',
-  'ARG',
-  'AUS',
-  'AUT',
-  'BEL',
-  'BIH',
-  'BRA',
-  'CPV',
-  'CAN',
-  'CIV',
-  'COL',
-  'COD',
-  'CRO',
-  'CUW',
-  'CZE',
-  'ECU',
-  'EGY',
-  'ENG',
-  'FRA',
-  'GER',
-  'GHA',
-  'HTI',
-  'IRQ',
-  'IRN',
-  'JPN',
-  'JOR',
-  'KOR',
-  'MEX',
-  'MAR',
-  'NED',
-  'NZL',
-  'NOR',
-  'PAN',
-  'PAR',
-  'POR',
-  'QAT',
-  'SAU',
-  'SCO',
-  'SEN',
-  'RSA',
-  'ESP',
-  'SWE',
-  'SUI',
-  'TUN',
-  'TUR',
-  'URU',
-  'USA',
-  'UZB',
-] as const;
 
 const albumTeamCountryOrder = [
   'MEX',
@@ -579,11 +529,19 @@ function AuthenticatedApp({ onLogout, session }: AuthenticatedAppProps) {
   const [countryFilter, setCountryFilter] = useState<string | null>(null);
   const [positionFilter, setPositionFilter] = useState<string | null>(null);
   const [sectionFilter, setSectionFilter] = useState<DashboardSection>('teams');
+  const [friendAlbumUserId, setFriendAlbumUserId] = useState<string | null>(null);
+  const [friendAlbumCountryFilter, setFriendAlbumCountryFilter] = useState<string | null>(null);
+  const [friendAlbumPositionFilter, setFriendAlbumPositionFilter] = useState<string | null>(null);
+  const [duplicateCountryFilter, setDuplicateCountryFilter] = useState<string | null>(null);
+  const [duplicatePositionFilter, setDuplicatePositionFilter] = useState<string | null>(null);
+  const [marketCountryFilter, setMarketCountryFilter] = useState<string | null>(null);
+  const [marketOwnerFilter, setMarketOwnerFilter] = useState<string | null>(null);
   const [selectedSticker, setSelectedSticker] = useState<StickerRecord | null>(null);
   const [draftQuantity, setDraftQuantity] = useState<number>(0);
   const [searchValue, setSearchValue] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [countryDrawerOpened, setCountryDrawerOpened] = useState(false);
+  const [countryPickerTarget, setCountryPickerTarget] = useState<CountryPickerTarget>('collection');
   const [countrySearch, setCountrySearch] = useState('');
   const selectedCountryChipRef = useRef<HTMLButtonElement | null>(null);
   const queryClient = useQueryClient();
@@ -742,6 +700,29 @@ function AuthenticatedApp({ onLogout, session }: AuthenticatedAppProps) {
       }
 
       return (data ?? []) as Profile[];
+    },
+  });
+
+  const friendCollectionsQuery = useQuery({
+    queryKey: ['friend-collections', userId, acceptedFriendsQuery.data],
+    enabled: Boolean(acceptedFriendsQuery.data),
+    queryFn: async () => {
+      const friendIds = (acceptedFriendsQuery.data ?? []).map((friend) => friend.id);
+
+      if (friendIds.length === 0) {
+        return [] as CollectionRow[];
+      }
+
+      const { data, error } = await supabase
+        .from('coleccion_usuario')
+        .select('user_id, cromo_id, cantidad')
+        .in('user_id', friendIds);
+
+      if (error) {
+        throw error;
+      }
+
+      return (data ?? []) as CollectionRow[];
     },
   });
 
@@ -913,10 +894,17 @@ function AuthenticatedApp({ onLogout, session }: AuthenticatedAppProps) {
   const friendships = friendshipsQuery.data ?? [];
   const acceptedFriends = acceptedFriendsQuery.data ?? [];
   const pendingProfiles = pendingProfilesQuery.data ?? [];
+  const friendCollections = friendCollectionsQuery.data ?? [];
   const incomingRequests = friendships.filter(
     (item) => item.status === 'pending' && item.created_by !== userId,
   );
   const ownCollectionMap = new Map(collection.map((item) => [item.cromo_id, item.cantidad]));
+  const selectedFriend = acceptedFriends.find((friend) => friend.id === friendAlbumUserId) ?? null;
+  const selectedFriendCollectionMap = new Map(
+    friendCollections
+      .filter((item) => item.user_id === friendAlbumUserId)
+      .map((item) => [item.cromo_id, item.cantidad]),
+  );
   const teamCountries = countries
     .filter((country) => country.iso !== 'FWC' && country.iso !== 'COK')
     .sort((left, right) => {
@@ -947,13 +935,7 @@ function AuthenticatedApp({ onLogout, session }: AuthenticatedAppProps) {
     return matchesSection && matchesCountry && matchesPosition;
   });
   const sortedFilteredStickers = [...filteredStickers].sort((left, right) => {
-    const countryComparison = getCountryOrderValue(left.pais?.iso) - getCountryOrderValue(right.pais?.iso);
-
-    if (countryComparison !== 0) {
-      return countryComparison;
-    }
-
-    return getStickerNumberValue(left.numero) - getStickerNumberValue(right.numero);
+    return compareStickersByAlbumOrder(left, right);
   });
   const positionOptions = Array.from(new Set(stickers.map((item) => item.posicion)))
     .sort()
@@ -961,9 +943,36 @@ function AuthenticatedApp({ onLogout, session }: AuthenticatedAppProps) {
       label: capitalize(posicion),
       value: posicion,
     }));
-  const marketMatches = (repeatedQuery.data ?? []).filter(
-    (item) => (ownCollectionMap.get(item.cromo_id) ?? 0) === 0,
+  const duplicateStickers = sortStickersByAlbumOrder(
+    stickers.filter((item) => {
+      const quantity = ownCollectionMap.get(item.id) ?? 0;
+      const matchesCountry = !duplicateCountryFilter || item.pais?.id === duplicateCountryFilter;
+      const matchesPosition = !duplicatePositionFilter || item.posicion === duplicatePositionFilter;
+
+      return quantity > 1 && matchesCountry && matchesPosition;
+    }),
   );
+  const friendAlbumStickers = sortStickersByAlbumOrder(
+    stickers.filter((item) => {
+      const matchesCountry = !friendAlbumCountryFilter || item.pais?.id === friendAlbumCountryFilter;
+      const matchesPosition = !friendAlbumPositionFilter || item.posicion === friendAlbumPositionFilter;
+
+      return matchesCountry && matchesPosition;
+    }),
+  );
+  const acceptedFriendIds = new Set(acceptedFriends.map((friend) => friend.id));
+  const marketMatches = (repeatedQuery.data ?? [])
+    .filter((item) => {
+      const matchesMissing = (ownCollectionMap.get(item.cromo_id) ?? 0) === 0;
+      const matchesFriend = acceptedFriendIds.has(item.user_id);
+      const matchesCountry =
+        !marketCountryFilter ||
+        countries.find((country) => country.id === marketCountryFilter)?.iso === item.pais_iso;
+      const matchesOwner = !marketOwnerFilter || item.user_id === marketOwnerFilter;
+
+      return matchesMissing && matchesFriend && matchesCountry && matchesOwner;
+    })
+    .sort(compareRepeatedByAlbumOrder);
 
   const collectedDistinct = stickers.reduce(
     (acc, sticker) => acc + (ownCollectionMap.get(sticker.id) ?? 0 > 0 ? 1 : 0),
@@ -982,6 +991,55 @@ function AuthenticatedApp({ onLogout, session }: AuthenticatedAppProps) {
     setSelectedSticker(sticker);
     setDraftQuantity(ownCollectionMap.get(sticker.id) ?? 0);
   };
+
+  const openCountryPicker = (target: CountryPickerTarget) => {
+    setCountryPickerTarget(target);
+    setCountrySearch('');
+    setCountryDrawerOpened(true);
+  };
+
+  const getCountryPickerValue = () => {
+    if (countryPickerTarget === 'friendAlbum') {
+      return friendAlbumCountryFilter;
+    }
+
+    if (countryPickerTarget === 'duplicates') {
+      return duplicateCountryFilter;
+    }
+
+    if (countryPickerTarget === 'market') {
+      return marketCountryFilter;
+    }
+
+    return countryFilter;
+  };
+
+  const setCountryPickerValue = (nextCountryId: string | null) => {
+    if (countryPickerTarget === 'friendAlbum') {
+      setFriendAlbumCountryFilter(nextCountryId);
+      return;
+    }
+
+    if (countryPickerTarget === 'duplicates') {
+      setDuplicateCountryFilter(nextCountryId);
+      return;
+    }
+
+    if (countryPickerTarget === 'market') {
+      setMarketCountryFilter(nextCountryId);
+      return;
+    }
+
+    setSectionFilter('teams');
+    setCountryFilter(nextCountryId);
+  };
+
+  const getCountryPickerLabel = (countryId: string | null) =>
+    countryId
+      ? getCountryLabel(teamCountries.find((country) => country.id === countryId) ?? null)
+      : 'Todas';
+
+  const currentCountryPickerValue = getCountryPickerValue();
 
   const scrollSelectedCountryIntoView = () => {
     const selectedChip = selectedCountryChipRef.current;
@@ -1018,7 +1076,13 @@ function AuthenticatedApp({ onLogout, session }: AuthenticatedAppProps) {
     return () => {
       window.clearTimeout(timeoutId);
     };
-  }, [countryDrawerOpened, countryFilter, filteredTeamCountries]);
+  }, [countryDrawerOpened, currentCountryPickerValue, filteredTeamCountries]);
+
+  useEffect(() => {
+    if (!friendAlbumUserId && acceptedFriends.length > 0) {
+      setFriendAlbumUserId(acceptedFriends[0].id);
+    }
+  }, [acceptedFriends, friendAlbumUserId]);
 
   return (
     <>
@@ -1036,7 +1100,9 @@ function AuthenticatedApp({ onLogout, session }: AuthenticatedAppProps) {
                 ? 'Collection'
                 : activeTab === 'social'
                   ? 'Social'
-                  : 'Market'}
+                  : activeTab === 'duplicates'
+                    ? 'Repetidos'
+                    : 'Market'}
             </Title>
             <Text className="screen-subtitle">@{username}</Text>
           </div>
@@ -1059,17 +1125,10 @@ function AuthenticatedApp({ onLogout, session }: AuthenticatedAppProps) {
               <button
                 type="button"
                 className="floating-selection-trigger"
-                onClick={() => {
-                  setCountrySearch('');
-                  setCountryDrawerOpened(true);
-                }}
+                onClick={() => openCountryPicker('collection')}
               >
                 <span className="floating-selection-label">Seleccion</span>
-                <span className="floating-selection-value">
-                  {countryFilter
-                    ? getCountryLabel(teamCountries.find((country) => country.id === countryFilter) ?? null)
-                    : 'Todas'}
-                </span>
+                <span className="floating-selection-value">{getCountryPickerLabel(countryFilter)}</span>
               </button>
 
               <section className="hero-panel collection-hero">
@@ -1257,6 +1316,18 @@ function AuthenticatedApp({ onLogout, session }: AuthenticatedAppProps) {
 
           {activeTab === 'social' ? (
             <Stack gap="lg">
+              <button
+                type="button"
+                className="floating-selection-trigger"
+                onClick={() => openCountryPicker('friendAlbum')}
+                disabled={acceptedFriends.length === 0}
+              >
+                <span className="floating-selection-label">Seleccion</span>
+                <span className="floating-selection-value">
+                  {getCountryPickerLabel(friendAlbumCountryFilter)}
+                </span>
+              </button>
+
               <Card className="panel-card section-card" padding="lg" radius="xl">
                 <Stack gap="md">
                   <div>
@@ -1406,11 +1477,161 @@ function AuthenticatedApp({ onLogout, session }: AuthenticatedAppProps) {
                   )}
                 </Stack>
               </Card>
+
+              <Card className="panel-card section-card" padding="lg" radius="xl">
+                <Stack gap="md">
+                  <Group justify="space-between" align="flex-start">
+                    <div>
+                      <Text fw={800} size="lg">
+                        Albumes de amigos
+                      </Text>
+                      <Text size="sm" c="dimmed">
+                        Consulta la coleccion de tus amistades aceptadas.
+                      </Text>
+                    </div>
+                    <Badge variant="light" color="dark" radius="xl">
+                      {friendAlbumStickers.length}
+                    </Badge>
+                  </Group>
+
+                  <Select
+                    label="Propietario"
+                    placeholder="Elige amigo"
+                    data={acceptedFriends.map((friend) => ({
+                      label: friend.username,
+                      value: friend.id,
+                    }))}
+                    value={friendAlbumUserId}
+                    onChange={setFriendAlbumUserId}
+                    disabled={acceptedFriends.length === 0}
+                  />
+
+                  <Select
+                    label="Posicion"
+                    placeholder="Todas"
+                    data={positionOptions}
+                    value={friendAlbumPositionFilter}
+                    onChange={setFriendAlbumPositionFilter}
+                    clearable
+                    disabled={acceptedFriends.length === 0}
+                  />
+
+                  {acceptedFriends.length === 0 ? (
+                    <Text size="sm" c="dimmed">
+                      Anade amigos para ver sus albumes.
+                    </Text>
+                  ) : friendCollectionsQuery.isLoading || stickersQuery.isLoading ? (
+                    <Card className="empty-card">
+                      <Loader color="green" />
+                    </Card>
+                  ) : (
+                    <>
+                      <Text size="sm" c="dimmed">
+                        {selectedFriend?.username ?? 'Amigo'} tiene{' '}
+                        {
+                          friendAlbumStickers.filter(
+                            (sticker) => (selectedFriendCollectionMap.get(sticker.id) ?? 0) > 0,
+                          ).length
+                        }{' '}
+                        cromos distintos en este filtro.
+                      </Text>
+                      <div className="sticker-grid compact-sticker-grid">
+                        {friendAlbumStickers.map((sticker) => {
+                          const quantity = selectedFriendCollectionMap.get(sticker.id) ?? 0;
+
+                          return (
+                            <StickerCard
+                              key={sticker.id}
+                              sticker={sticker}
+                              quantity={quantity}
+                              getStickerImageUrl={getStickerImageUrl}
+                            />
+                          );
+                        })}
+                      </div>
+                    </>
+                  )}
+                </Stack>
+              </Card>
+            </Stack>
+          ) : null}
+
+          {activeTab === 'duplicates' ? (
+            <Stack gap="lg">
+              <button
+                type="button"
+                className="floating-selection-trigger"
+                onClick={() => openCountryPicker('duplicates')}
+              >
+                <span className="floating-selection-label">Seleccion</span>
+                <span className="floating-selection-value">
+                  {getCountryPickerLabel(duplicateCountryFilter)}
+                </span>
+              </button>
+
+              <section className="hero-panel market-hero">
+                <Text className="eyebrow-text">Cambios</Text>
+                <Title order={2} className="market-title">
+                  Tus cromos repetidos
+                </Title>
+                <Text className="hero-text">
+                  Solo aparecen los cromos que tienes mas de una vez para ajustar cantidades rapido.
+                </Text>
+                <div className="market-highlight">
+                  <span className="market-count">{duplicateStickers.length}</span>
+                  <span className="market-caption">cromos repetidos</span>
+                </div>
+              </section>
+
+              <Card className="panel-card filter-panel" padding="lg" radius="xl">
+                <Select
+                  label="Posicion"
+                  placeholder="Todas"
+                  data={positionOptions}
+                  value={duplicatePositionFilter}
+                  onChange={setDuplicatePositionFilter}
+                  clearable
+                />
+              </Card>
+
+              {stickersQuery.isLoading || collectionQuery.isLoading ? (
+                <Card className="empty-card">
+                  <Loader color="green" />
+                </Card>
+              ) : duplicateStickers.length === 0 ? (
+                <EmptyState
+                  title="No hay repetidos para ese filtro"
+                  text="Cuando tengas dos o mas copias apareceran aqui."
+                />
+              ) : (
+                <div className="sticker-grid compact-sticker-grid">
+                  {duplicateStickers.map((sticker) => (
+                    <StickerCard
+                      key={sticker.id}
+                      sticker={sticker}
+                      quantity={ownCollectionMap.get(sticker.id) ?? 0}
+                      getStickerImageUrl={getStickerImageUrl}
+                      onClick={() => openStickerModal(sticker)}
+                    />
+                  ))}
+                </div>
+              )}
             </Stack>
           ) : null}
 
           {activeTab === 'market' ? (
             <Stack gap="lg">
+              <button
+                type="button"
+                className="floating-selection-trigger"
+                onClick={() => openCountryPicker('market')}
+              >
+                <span className="floating-selection-label">Seleccion</span>
+                <span className="floating-selection-value">
+                  {getCountryPickerLabel(marketCountryFilter)}
+                </span>
+              </button>
+
               <section className="hero-panel market-hero">
                 <Text className="eyebrow-text">Intercambios</Text>
                 <Title order={2} className="market-title">
@@ -1424,6 +1645,29 @@ function AuthenticatedApp({ onLogout, session }: AuthenticatedAppProps) {
                   <span className="market-caption">resultados disponibles</span>
                 </div>
               </section>
+
+              <Card className="panel-card filter-panel" padding="lg" radius="xl">
+                <Stack gap="md">
+                  <Group justify="space-between">
+                    <Text fw={700}>Filtros de mercado</Text>
+                    <Badge variant="light" color="dark" radius="xl">
+                      {marketMatches.length}
+                    </Badge>
+                  </Group>
+
+                  <Select
+                    label="Propietario"
+                    placeholder="Todos tus amigos"
+                    data={acceptedFriends.map((friend) => ({
+                      label: friend.username,
+                      value: friend.id,
+                    }))}
+                    value={marketOwnerFilter}
+                    onChange={setMarketOwnerFilter}
+                    clearable
+                  />
+                </Stack>
+              </Card>
 
               {repeatedQuery.isLoading ? (
                 <Card className="empty-card">
@@ -1593,10 +1837,9 @@ function AuthenticatedApp({ onLogout, session }: AuthenticatedAppProps) {
 
           <button
             type="button"
-            className={!countryFilter ? 'country-chip active' : 'country-chip'}
+            className={!currentCountryPickerValue ? 'country-chip active' : 'country-chip'}
             onClick={() => {
-              setSectionFilter('teams');
-              setCountryFilter(null);
+              setCountryPickerValue(null);
               setCountryDrawerOpened(false);
             }}
           >
@@ -1607,12 +1850,11 @@ function AuthenticatedApp({ onLogout, session }: AuthenticatedAppProps) {
           {filteredTeamCountries.map((country) => (
             <button
               key={country.id}
-              ref={countryFilter === country.id ? selectedCountryChipRef : null}
+              ref={currentCountryPickerValue === country.id ? selectedCountryChipRef : null}
               type="button"
-              className={countryFilter === country.id ? 'country-chip active' : 'country-chip'}
+              className={currentCountryPickerValue === country.id ? 'country-chip active' : 'country-chip'}
               onClick={() => {
-                setSectionFilter('teams');
-                setCountryFilter(country.id);
+                setCountryPickerValue(country.id);
                 setCountryDrawerOpened(false);
               }}
             >
@@ -1709,6 +1951,109 @@ function EmptyState({ title, text }: { text: string; title: string }) {
   );
 }
 
+function StickerCard({
+  getStickerImageUrl,
+  onClick,
+  quantity,
+  sticker,
+}: {
+  getStickerImageUrl: (sticker: StickerRecord) => string | null;
+  onClick?: () => void;
+  quantity: number;
+  sticker: StickerRecord;
+}) {
+  return (
+    <button
+      type="button"
+      className={
+        quantity > 1
+          ? 'sticker-card mobile-sticker-card is-duplicate'
+          : quantity > 0
+            ? 'sticker-card mobile-sticker-card is-owned'
+            : 'sticker-card mobile-sticker-card'
+      }
+      onClick={onClick}
+      disabled={!onClick}
+    >
+      <div className="sticker-silhouette" aria-hidden="true">
+        {getStickerImageUrl(sticker) ? (
+          <img
+            src={getStickerImageUrl(sticker) ?? undefined}
+            alt={sticker.nombre}
+            className="sticker-main-avatar-image"
+            onError={(event) => {
+              event.currentTarget.style.display = 'none';
+            }}
+          />
+        ) : sticker.posicion === 'escudo' &&
+          sticker.pais?.iso &&
+          sticker.pais.iso !== 'FWC' &&
+          sticker.pais.iso !== 'COK' ? (
+          <img
+            src={getShieldSrc(sticker.pais.iso)}
+            alt={`Escudo de ${getCountryLabel(sticker.pais)}`}
+            className="sticker-main-shield-image"
+            onError={(event) => {
+              event.currentTarget.style.display = 'none';
+            }}
+          />
+        ) : sticker.nombre === 'Equipo' ? (
+          <img
+            src="/team-placeholder.svg"
+            alt={`Placeholder de equipo para ${sticker.nombre}`}
+            className="sticker-main-avatar-image"
+          />
+        ) : (
+          <img
+            src="/player-placeholder.svg"
+            alt={`Placeholder de ${sticker.nombre}`}
+            className="sticker-main-avatar-image"
+          />
+        )}
+      </div>
+
+      <div className="sticker-card-body">
+        <div className="sticker-card-header">
+          <span className="sticker-number">#{formatStickerNumber(sticker.numero)}</span>
+          <span
+            className={
+              quantity > 1
+                ? 'sticker-qty sticker-qty-dup'
+                : quantity > 0
+                  ? 'sticker-qty sticker-qty-own'
+                  : 'sticker-qty'
+            }
+          >
+            x{quantity}
+          </span>
+        </div>
+        <Text fw={700} className="sticker-name">
+          {sticker.nombre}
+        </Text>
+        <div className="sticker-meta-row">
+          <Text size="sm" c="dimmed" className="sticker-meta">
+            {compactLabelForSticker(sticker)}
+          </Text>
+          {sticker.pais?.iso &&
+          sticker.pais.iso !== 'FWC' &&
+          sticker.pais.iso !== 'COK' ? (
+            <div className="sticker-mini-shield">
+              <img
+                src={getShieldSrc(sticker.pais.iso)}
+                alt={`Escudo de ${getCountryLabel(sticker.pais)}`}
+                className="sticker-mini-shield-image"
+                onError={(event) => {
+                  event.currentTarget.style.display = 'none';
+                }}
+              />
+            </div>
+          ) : null}
+        </div>
+      </div>
+    </button>
+  );
+}
+
 function getRelation(profileId: string, userId: string, friendships: Friendship[]) {
   const friendship = friendships.find(
     (item) =>
@@ -1795,10 +2140,45 @@ function formatStickerNumber(numero: string) {
 }
 
 function getCountryOrderValue(iso?: string | null) {
-  const index = countryDisplayOrder.indexOf(
-    (iso ?? '') as (typeof countryDisplayOrder)[number],
-  );
-  return index === -1 ? Number.MAX_SAFE_INTEGER : index;
+  if (iso === 'FWC') {
+    return -2;
+  }
+
+  if (iso === 'COK') {
+    return -1;
+  }
+
+  return albumTeamCountryOrderIndex.get(iso ?? '') ?? Number.MAX_SAFE_INTEGER;
+}
+
+function compareStickersByAlbumOrder(left: StickerRecord, right: StickerRecord) {
+  const countryComparison = getCountryOrderValue(left.pais?.iso) - getCountryOrderValue(right.pais?.iso);
+
+  if (countryComparison !== 0) {
+    return countryComparison;
+  }
+
+  return getStickerNumberValue(left.numero) - getStickerNumberValue(right.numero);
+}
+
+function sortStickersByAlbumOrder(stickers: StickerRecord[]) {
+  return [...stickers].sort(compareStickersByAlbumOrder);
+}
+
+function compareRepeatedByAlbumOrder(left: RepeatedSticker, right: RepeatedSticker) {
+  const countryComparison = getCountryOrderValue(left.pais_iso) - getCountryOrderValue(right.pais_iso);
+
+  if (countryComparison !== 0) {
+    return countryComparison;
+  }
+
+  const numberComparison = getStickerNumberValue(left.numero) - getStickerNumberValue(right.numero);
+
+  if (numberComparison !== 0) {
+    return numberComparison;
+  }
+
+  return left.username.localeCompare(right.username);
 }
 
 export default App;
