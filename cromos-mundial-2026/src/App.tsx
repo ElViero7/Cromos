@@ -70,6 +70,8 @@ type StickerRecord = {
 
 const devSportsdbHeadshotMap = devSportsdbHeadshots as Record<string, string>;
 const devSportsdbSpainHeadshotMap = devSportsdbSpainHeadshots as Record<string, string>;
+const enableRemoteStickerHeadshots =
+  import.meta.env.DEV || import.meta.env.VITE_ENABLE_REMOTE_STICKER_HEADSHOTS === 'true';
 
 type CollectionRow = {
   cantidad: number;
@@ -549,6 +551,10 @@ function AuthenticatedApp({ onLogout, session }: AuthenticatedAppProps) {
   const username = String(session.user.user_metadata.username ?? 'usuario');
 
   function getStickerImageUrl(sticker: StickerRecord) {
+    if (!enableRemoteStickerHeadshots) {
+      return null;
+    }
+
     const preferredSource = headshotSourceOverrides[sticker.numero];
     const sportsdbUrl = sticker.avatar_url_sportsdb;
     const legacyUrl = sticker.avatar_url;
@@ -1237,6 +1243,9 @@ function AuthenticatedApp({ onLogout, session }: AuthenticatedAppProps) {
                               src={getStickerImageUrl(sticker) ?? undefined}
                               alt={sticker.nombre}
                               className="sticker-main-avatar-image"
+                              loading="lazy"
+                              decoding="async"
+                              fetchPriority="low"
                               onError={(event) => {
                                 event.currentTarget.style.display = 'none';
                               }}
@@ -1750,6 +1759,7 @@ function AuthenticatedApp({ onLogout, session }: AuthenticatedAppProps) {
                     src={getStickerImageUrl(selectedSticker) ?? undefined}
                     alt={selectedSticker.nombre}
                     className="sticker-modal-portrait-image"
+                    decoding="async"
                   />
                 </div>
               ) : selectedSticker.posicion !== 'escudo' ? (
@@ -1981,6 +1991,9 @@ function StickerCard({
             src={getStickerImageUrl(sticker) ?? undefined}
             alt={sticker.nombre}
             className="sticker-main-avatar-image"
+            loading="lazy"
+            decoding="async"
+            fetchPriority="low"
             onError={(event) => {
               event.currentTarget.style.display = 'none';
             }}
