@@ -72,6 +72,7 @@ const devSportsdbHeadshotMap = devSportsdbHeadshots as Record<string, string>;
 const devSportsdbSpainHeadshotMap = devSportsdbSpainHeadshots as Record<string, string>;
 const enableRemoteStickerHeadshots =
   import.meta.env.DEV || import.meta.env.VITE_ENABLE_REMOTE_STICKER_HEADSHOTS === 'true';
+const appBuildLabel = 'APK 2026-05-19.2';
 
 type CollectionRow = {
   cantidad: number;
@@ -1110,7 +1111,9 @@ function AuthenticatedApp({ onLogout, session }: AuthenticatedAppProps) {
                     ? 'Repetidos'
                     : 'Market'}
             </Title>
-            <Text className="screen-subtitle">@{username}</Text>
+            <Text className="screen-subtitle">
+              @{username} · {appBuildLabel}
+            </Text>
           </div>
 
           <ActionIcon
